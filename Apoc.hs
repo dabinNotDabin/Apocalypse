@@ -134,6 +134,24 @@ roundSelector state (Just Normal)        (Just Normal)          = runStrategiesN
 
 
 
+
+checkForWin :: Board -> Maybe Player
+checkForWin board
+    | ((getNumPawns (theBoard state) Black) == 0)    = Just White
+    | ((getNumPawns (theBoard state) White) == 0)    = Just Black
+    otherwise                                        = Nothing
+
+
+
+
+checkPenalties :: GameState -> Player -> Bool
+checkPenalties state Black = ((blackPen state) >= 2)
+checkPenalties state White = ((whitePen state) >= 2)
+
+
+
+
+
 doWin :: Board -> Player -> Chooser -> Chooser -> IO()
 doWin board Black blackStrategy whiteStrategy = do
     putStrLn $ ("Black Wins! (" ++ (chooser2Str blackStrategy) ++ "): " ++ (read (getNumPawns board Black) :: String)
@@ -149,18 +167,14 @@ doWin board White blackStrategy whiteStrategy = do
 
 
 
-checkForWin :: Board -> Maybe Player
-checkForWin board
-    | ((getNumPawns (theBoard state) Black) == 0)    = Just White
-    | ((getNumPawns (theBoard state) White) == 0)    = Just Black
-    otherwise                                        = Nothing
 
 
 
 
-checkPenalties :: GameState -> Player -> Bool
-checkPenalties state Black = ((blackPen state) >= 2)
-checkPenalties state White = ((whitePen state) >= 2)
+  
+
+
+
 
 
 
@@ -371,27 +385,27 @@ getMoveType _     _     _                                                 = NoEv
 --      - that will affect the board.
 updateBoard :: Board -> Played -> Played -> Board
 
-updateBoard board (Played ((w0,x0),(w1,x1))) (Played ((y0,z0),(y1,z1)))           = 
+updateBoard board (Played ((w0,x0),(w1,x1))) (Played ((y0,z0),(y1,z1)))               = 
     let moveType = getMoveType board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
      in 
         updateBoard' board moveType (Just [(w0,x0),(w1,x1)])  (Just [(y0,z0),(y1,z1)])
 
 
-updateBoard board (PlacedPawn ((w0,x0),(w1,x1))) (PlacedPawn ((y0,z0),(y1,z1)))   =   
+updateBoard board (PlacedPawn ((w0,x0),(w1,x1))) (PlacedPawn ((y0,z0),(y1,z1)))       =   
     let moveType = getMoveType board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
      in 
         updateBoard' board moveType (Just [(w0,x0),(w1,x1)])  (Just [(y0,z0),(y1,z1)])
 
    
-updateBoard board (Played ((w0,x0),(w1,x1)))        _                                   =   updateBoard' board NoEvent  (Just [(w0,x0),(w1,x1)])  Nothing
+updateBoard board (Played ((w0,x0),(w1,x1)))        _                                 =   updateBoard' board NoEvent  (Just [(w0,x0),(w1,x1)])  Nothing
           
-updateBoard board  _                               (Played ((y0,z0),(y1,z1)))           =   updateBoard' board NoEvent   Nothing                 (Just [(y0,z0),(y1,z1)])
+updateBoard board  _                               (Played ((y0,z0),(y1,z1)))         =   updateBoard' board NoEvent   Nothing                 (Just [(y0,z0),(y1,z1)])
 
-updateBoard board (PlacedPawned ((w0,x0),(w1,x1)))  _                                   =   updateBoard' board NoEvent  (Just [(w0,x0),(w1,x1)])  Nothing
+updateBoard board (PlacedPawn ((w0,x0),(w1,x1)))  _                                   =   updateBoard' board NoEvent  (Just [(w0,x0),(w1,x1)])  Nothing
           
-updateBoard board  _                               (PlacedPawned ((y0,z0),(y1,z1)))     =   updateBoard' board NoEvent   Nothing                 (Just [(y0,z0),(y1,z1)])
+updateBoard board  _                               (PlacedPawn ((y0,z0),(y1,z1)))     =   updateBoard' board NoEvent   Nothing                 (Just [(y0,z0),(y1,z1)])
 
-updateBoard board  _                               _                                    =   board
+updateBoard board  _                               _                                  =   board
 
 
 
