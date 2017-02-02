@@ -105,6 +105,7 @@ swap board (w,x) (y,z) =
 
 -- | Takes two Cells and returns an Outcome (defined in CustomTools)
 --   Used to resolve clashes (two pieces move to the same cell)
+--   Expects the cell of the Black Player as the first arg
 getOutcome :: Cell            -- ^ Black Cell
            -> Cell            -- ^ White Cell
            -> Maybe Outcome
@@ -143,7 +144,7 @@ runStrategiesNormal state strat1 Black strat2 White = do
     let moveType      = getMoveType (theBoard state) move1 move2 
         outcome       = getOutcome (getFromBoard (theBoard state) ((fromJust move1) !! 1)) (getFromBoard (theBoard state) ((fromJust move2) !! 1))
         blackPlayed   = assessPlay Black Normal move1 (theBoard state)
-        whitePlayed   = assessPlay White Normal move1 (theBoard state)
+        whitePlayed   = assessPlay White Normal move2 (theBoard state)
      in     putStrLn (show $ GameState (blackPlayed)
                                        ((blackPen state) + (getPen blackPlayed))
                                        (whitePlayed)
