@@ -52,11 +52,26 @@ main' args = do
     putStrLn "  human"
     putStrLn "\nChoose a strategy for Black yo"
     a <- getLine
-    let blackStrategy = getStrategy a
     putStrLn "\nChoose a strategy for White ho"
     b <- getLine
-    let whiteStrategy = getStrategy a
+    let blackStrategy = getStrategy a
+        whiteStrategy = getStrategy b
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     putStrLn "\nThe initial board:"
     print initBoard
 
@@ -73,6 +88,87 @@ main' args = do
                                          ((fromJust move) !! 0)
                                          E))
     
+{--
+
+doTurn :: GameState -> Chooser -> Chooser -> GameState
+doTurn state blackStrategy whiteStrategy =
+    let blackPlayType = determinePlayType state Black 
+        whitePlayType = determinePlayType state White
+     in 
+            | (blackPlayType == Passed) && (whitePlayType == Passed) =  getdoublePassWinner state
+            | checkPenalties state Black                             =  doWin White
+            | checkPenalties state White                             =  doWin Black
+-- account for both accumulate 2 penalty points in the same turn
+            | checkForWin    (theBoard state) == Nothing             =  roundSelector state (Just blackPlayType) (Just whitePlayType)
+            | checkForWin    (theBoard state) == Just Black          =  doWin Black 
+            | checkForWin    (theBoard state) == Just White          =  doWin White
+
+
+
+
+
+
+
+roundSelector :: GameState -> Maybe PlayType -> Maybe PlayType -> GameState
+roundSelector state Nothing              Nothing              = runStrategiesUpgrade
+roundSelector state Nothing              _                    = runStrategiesUpgrade
+roundSelector state _                    Nothing              = runStrategiesUpgrade
+--roundSelector state (Just PawnPlacement) (Just PawnPlacement) = runStrategiesPawnPlacement --should get caught from the next two
+roundSelector state (Just PawnPlacement) _                    = runStrategiesPawnPlacement
+roundSelector state _                    (Just PawnPlacement) = runStrategiesPawnPlacement
+roundSelector state (Just Normal)        (Just Normal)        = runStrategiesNormal -- only want to do this if both are normal
+
+
+
+
+
+checkForWin :: Board -> Maybe Player
+checkForWin board
+    | ((getNumPawns (theBoard state) Black) == 0)    = Just White
+    | ((getNumPawns (theBoard state) White) == 0)    = Just Black
+    otherwise                                        = Nothing
+
+
+
+
+checkPenalties :: GameState -> Player -> Bool
+checkPenalties state Black = ((blackPen state) >= 2)
+checkPenalties state White = ((whitePen state) >= 2)
+
+
+
+
+
+doWin :: Board -> Player -> Chooser -> Chooser -> IO()
+doWin board Black blackStrategy whiteStrategy = do
+    putStrLn $ ("Black Wins! (" ++ (chooser2Str blackStrategy) ++ "): " ++ (read (getNumPawns board Black) :: String)
+                                ++ (chooser2Str WhiteStrategy) ++ "): " ++ (read (getNumPawns board White) :: String) 
+doWin board White blackStrategy whiteStrategy = do
+    putStrLn $ ("White Wins! (" ++ (chooser2Str blackStrategy) ++ "): " ++ (read (getNumPawns board Black) :: String)
+                                ++ (chooser2Str WhiteStrategy) ++ "): " ++ (read (getNumPawns board White) :: String) 
+
+--}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ---2D list utility functions-------------------------------------------------------
 
 -- | Replaces the nth element in a row with a new element.
@@ -105,7 +201,7 @@ swap board (w,x) (y,z) =
 
 -- | Takes two Cells and returns an Outcome (defined in CustomTools)
 --   Used to resolve clashes (two pieces move to the same cell)
---   Expects the cell of the Black Player as the first arg
+--   Expects the Cell of the Black Player as the first arg
 getOutcome :: Cell            -- ^ Black Cell
            -> Cell            -- ^ White Cell
            -> Maybe Outcome
@@ -137,8 +233,8 @@ getUpgradablePawnLocation board White     = ([(a,4) | a <- [0..4], (getFromBoard
 
 -- Currently, fromJust will throw exceptions when not optimal, need a workaround or else only use this for a normal
 -- move phase and create a function selector that decides between run normal, run pawn placement, and run upgrade functions
-runStrategiesNormal :: GameState -> Chooser -> Player -> Chooser -> Player -> IO()
-runStrategiesNormal state strat1 Black strat2 White = do
+runStrategiesNormal :: GameState -> Chooser -> Chooser -> IO()
+runStrategiesNormal state strat1 strat2 = do
     move1 <- strat1 state Normal Black
     move2 <- strat2 state Normal White
     let moveType      = getMoveType (theBoard state) move1 move2 
@@ -187,9 +283,9 @@ assessPlay colour PawnPlacement move    board  =
 --      - a Pawn move to capture is anything but a diagonal step
 --      - a Knight's move in magnitude is anything but 2 rows by 1 column or 2 columns by 1 row
 --
---   The Nothing case is not handled as assessPlay handles it. This may not be optimal or best practise.
+--   The Nothing case is not handled as assessPlay handles it. This may not be optimal or best practice.
 validityTest :: Player -> Cell                 -- ^ Piece occupying the source cell
-                       -> Maybe [(Int, Int)]   -- ^ Move to be made, expects Nothing or a Normal Move
+                       -> Maybe [(Int, Int)]   -- ^ Move to be made, expects a Normal move
                        -> Cell                 -- ^ Piece occupying the destination cell
                        -> Bool
 validityTest _     E   _                       _  = False

@@ -1,7 +1,10 @@
 {- |
 Module      : CustomTools
-Description : Instances of Show, overridden to make user prompts more straightforward.
+Description : Custom Data Types and Functions
 -}
+
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module CustomTools (
     MoveType (BlackDodge, WhiteDodge, Clash, Swap),
@@ -17,7 +20,6 @@ import ApocTools
 
 
 
-
 data MoveType = BlackDodge              -- ^ White attempted to capture but Black moved that piece
               | WhiteDodge              -- ^ Black attempted to capture but White moved that piece
               | Swap                    -- ^ Black and White attempted to capture eachother thus swapped places
@@ -25,9 +27,9 @@ data MoveType = BlackDodge              -- ^ White attempted to capture but Blac
                 deriving (Eq)
 
 
-data Outcome  = Win   -- ^ Used to indicate a successful capture attempt
-              | Loss  -- ^ Used to indicate a failed capture attempt
-              | Tie   -- ^ Used to indicate a tie (both lose their piece)
+data Outcome  = Win   -- ^ Used to indicate a Win in a Clash  -- Taken from the perspective of some Player
+              | Loss  -- ^ Used to indicate a Loss in a Clash -- Taken from the perspective of some Player
+              | Tie   -- ^ Used to indicate a Tie in a Clash  -- Taken from the perspective of some Player
 
 
 
@@ -66,12 +68,10 @@ determineWhitePlayType state
     | otherwise                                                                            = Just Normal
 
 
-
 -- | Takes a Board and a Player (Black or White) and returns the number of Knights that player has
 getNumKnights :: Board -> Player -> Int
 getNumKnights board Black     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard board (x,y) == BK]
 getNumKnights board White     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard board (x,y) == WK]
-
 
 -- | Takes a Board and a Player (Black or White) and returns the number of Pawns that player has
 getNumPawns :: Board -> Player -> Int
@@ -79,10 +79,17 @@ getNumPawns board Black     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard bo
 getNumPawns board White     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard board (x,y) == WP]
 
 
+{--
+instance Show Chooser where
+         show human = "human"
+         show greedy = "greedy"
 
-
-
-
+ 
+chooser2Str :: Chooser -> String
+chooser2Str human   = "human"
+chooser2Str greedy  = "greedy"
+chooser2Str evasive = "evasive"
+--}
 
 
 
