@@ -66,10 +66,12 @@ determineWhitePlayType state
     | otherwise                                                                            = Just Normal
 
 
+
 -- | Takes a Board and a Player (Black or White) and returns the number of Knights that player has
 getNumKnights :: Board -> Player -> Int
 getNumKnights board Black     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard board (x,y) == BK]
 getNumKnights board White     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard board (x,y) == WK]
+
 
 -- | Takes a Board and a Player (Black or White) and returns the number of Pawns that player has
 getNumPawns :: Board -> Player -> Int
