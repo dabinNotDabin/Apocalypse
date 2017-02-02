@@ -134,24 +134,6 @@ roundSelector state (Just Normal)        (Just Normal)          = runStrategiesN
 
 
 
-
-checkForWin :: Board -> Maybe Player
-checkForWin board
-    | ((getNumPawns (theBoard state) Black) == 0)    = Just White
-    | ((getNumPawns (theBoard state) White) == 0)    = Just Black
-    otherwise                                        = Nothing
-
-
-
-
-checkPenalties :: GameState -> Player -> Bool
-checkPenalties state Black = ((blackPen state) >= 2)
-checkPenalties state White = ((whitePen state) >= 2)
-
-
-
-
-
 doWin :: Board -> Player -> Chooser -> Chooser -> IO()
 doWin board Black blackStrategy whiteStrategy = do
     putStrLn $ ("Black Wins! (" ++ (chooser2Str blackStrategy) ++ "): " ++ (read (getNumPawns board Black) :: String)
@@ -171,10 +153,19 @@ doWin board White blackStrategy whiteStrategy = do
 
 
 
-  
+
+checkForWin :: Board -> Maybe Player
+checkForWin board
+    | ((getNumPawns (theBoard state) Black) == 0)    = Just White
+    | ((getNumPawns (theBoard state) White) == 0)    = Just Black
+    otherwise                                        = Nothing
 
 
 
+
+checkPenalties :: GameState -> Player -> Bool
+checkPenalties state Black = ((blackPen state) >= 2)
+checkPenalties state White = ((whitePen state) >= 2)
 
 
 
