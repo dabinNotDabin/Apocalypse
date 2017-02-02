@@ -7,7 +7,7 @@ Description : Custom Data Types and Functions
 {-# LANGUAGE FlexibleInstances #-}
 
 module CustomTools (
-    MoveType (BlackDodge, WhiteDodge, Clash, Swap),
+    MoveType (BlackDodge, WhiteDodge, Clash, Swap, NoEvent),
     Outcome (Win, Loss, Tie),
     determinePlayType,
     determineBlackPlayType,
@@ -24,15 +24,16 @@ data MoveType = BlackDodge              -- ^ White attempted to capture but Blac
               | WhiteDodge              -- ^ Black attempted to capture but White moved that piece
               | Swap                    -- ^ Black and White attempted to capture eachother thus swapped places
               | Clash                   -- ^ Black and White moved into the same square
+              | NoEvent                 -- ^ None of the above
                 deriving (Eq)
 
 
 data Outcome  = Win   -- ^ Used to indicate a Win in a Clash  -- Taken from the perspective of some Player
               | Loss  -- ^ Used to indicate a Loss in a Clash -- Taken from the perspective of some Player
               | Tie   -- ^ Used to indicate a Tie in a Clash  -- Taken from the perspective of some Player
+                deriving (Eq)
 
-
-
+ 
 
 
 
@@ -94,6 +95,20 @@ chooser2Str evasive = "evasive"
 
 
 
+instance Show MoveType where
+         show BlackDodge = "Black Dodge"
+         show WhiteDodge = "White Dodge"
+         show Swap       = "Swap"
+         show Clash      = "Clash"
+         show NoEvent    = "No Event"
+
+
+
+
+instance Show Outcome where
+         show Win  = "Win"
+         show Loss = "Loss"
+         show Tie  = "Tie"
 
 
 

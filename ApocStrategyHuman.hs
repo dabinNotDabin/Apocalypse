@@ -34,13 +34,24 @@ human    :: Chooser
 human state playType colour = do
     promptUser playType colour
     input <- getLine
---check that user input is either 7 characters, 3 characters or 1 character
+-------------------------------------------------------------------------------------TODO 3) if playType is Normal, parse MAX 4 integers from input
+-------------------------------------------------------------------------------------TODO 3) if playType is PawnPlacement, parse MAX 2 integers from input
+-------------------------------------------------------------------------------------TODO 3) note that user input can contain comments so there may be more input following the move coordinates (see spec)
+-------------------------------------------------------------------------------------TODO 3) check that all integers, x are such that 0 <= x <= 4 for both types of input.
+-------------------------------------------------------------------------------------TODO 3) I assume that if there are more integers than required, the remaining
+-------------------------------------------------------------------------------------TODO 3) will be considered a comment but I'll check with Rob
+-------------------------------------------------------------------------------------TODO 3) If not enough integers are supplied or integers are out of range, user should be reprompted.
+-------------------------------------------------------------------------------------TODO 3) If the user enters say 0 0 3 3, this is a penaltied move but still valid input, don't check for move validity here
+
+
+
     return $ inputToCoordinates ([read [x] :: Int | x <- input, elem x ['0'..'4']])
 
 
 
+
 greedy    :: Chooser
-greedy b Normal        c = return (Just [(0,4),(2,3)])
+greedy state Normal colour = return (Just [(4,4),(3,2)])
 greedy b PawnPlacement c = return (Just [(2,2)])
 
 
@@ -81,7 +92,8 @@ inputToCoordinates :: [Int] -> Maybe [(Int, Int)]
 inputToCoordinates [x0, y0, x1, y1]  = Just [(x0,y0),(x1,y1)]
 inputToCoordinates [x0, y0]          = Just [(x0,y0)]
 inputToCoordinates []                = Nothing
-inputToCoordinates _                 = Nothing
+
+
 
 
 promptUser :: PlayType -> Player -> IO()
@@ -102,35 +114,10 @@ promptUser Normal        colour = putStrLn $ "Enter the move coordinates for pla
 
 
 
-
-
-
-
-
---             = do putStrLn "Invalid input: " ++ show inp ++ " --> You must enter input in the form;"
---	                                      ++ "\nw x y z  where 0 <= w,x,y,z <= 4    or \nx y where 0 <= x,y <= 4."
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+{--
+getEmptyCoordinates :: Board -> [(Int,Int)]
+getEmptyCoordinates board = [(a,b) | a <- [0..4], b <- [0..4], ((getFromBoard board (a,b)) == E))]
+--}
 
 
 
