@@ -40,6 +40,7 @@ import CustomTools
 -- | The main entry, which just calls 'main'' with the command line arguments.
 main = main' (unsafePerformIO getArgs)
 
+
 {- | We have a main' IO function so that we can either:
 
      1. call our program from GHCi in the usual way
@@ -47,16 +48,29 @@ main = main' (unsafePerformIO getArgs)
 -}
 main'           :: [String] -> IO()
 main' args = do
+-------------------------------------------------------------------------------------TODO 1) check args, if zero, we step into interactive mode (pass over this section of code)
+-------------------------------------------------------------------------------------TODO 1)             if two, check that they are legal strategy names. If they are, run playGame with args
+-------------------------------------------------------------------------------------TODO 1)                                                               If not, do print list of strategy names
+-------------------------------------------------------------------------------------TODO 1)                                                               see point 6) in functional requirements (spec)
+ 
+
+
+
     putStrLn "  greedy"
     putStrLn "  evasive"
     putStrLn "  human"
     putStrLn "\nChoose a strategy for Black yo"
     a <- getLine
-    putStrLn "\nChoose a strategy for White ho"
+    putStrLn "\nChoose a strategy for White tho"
     b <- getLine
+    
+            
+-------------------------------------------------------------------------------------TODO 2) check strategy names, if either are illegal, print a list of strategy names and quit
+-------------------------------------------------------------------------------------TODO 2)                       if both legal, run strategies against one another
+
+    
     let blackStrategy = getStrategy a
         whiteStrategy = getStrategy b
-    
 
 
 
@@ -77,17 +91,18 @@ main' args = do
 
     putStrLn $ "\nThe initial board with back human (the placeholder for human) strategy having played one move\n"
                ++ "(clearly illegal as we must play in rounds!):"
-    move <- blackStrategy (initBoard) Normal Black
-    putStrLn (show $ GameState (assessPlay Black Normal move (theBoard initBoard))
-                               (blackPen initBoard)
-                               (assessPlay White Normal move (theBoard initBoard))
-                               (whitePen initBoard)
-                               (replace2 (replace2 (theBoard initBoard)
-                                                   ((fromJust move) !! 1)
-                                                   (getFromBoard (theBoard initBoard) ((fromJust move) !! 0)))
-                                         ((fromJust move) !! 0)
-                                         E))
+    move1 <- blackStrategy initBoard Normal Black
+    move2 <- whiteStrategy initBoard Normal White
     
+    let moveType      = getMoveType (theBoard initBoard) move1 move2 
+        blackPlayed   = assessPlay Black Normal move1 (theBoard initBoard)
+        whitePlayed   = assessPlay White Normal move2 (theBoard initBoard)
+     in     putStrLn (show $ GameState (blackPlayed)
+                                       ((blackPen initBoard) + (getPen blackPlayed))
+                                       (whitePlayed)
+                                       ((whitePen initBoard) + (getPen whitePlayed)) 
+                                       (updateBoard' (theBoard initBoard) moveType move1 move2)) -- this updates the board regardless of the outcome of the play, need to check for illegal plays
+
 {--
 
 doTurn :: GameState -> Chooser -> Chooser -> GameState
@@ -110,13 +125,11 @@ doTurn state blackStrategy whiteStrategy =
 
 
 roundSelector :: GameState -> Maybe PlayType -> Maybe PlayType -> GameState
-roundSelector state Nothing              Nothing              = runStrategiesUpgrade
-roundSelector state Nothing              _                    = runStrategiesUpgrade
-roundSelector state _                    Nothing              = runStrategiesUpgrade
---roundSelector state (Just PawnPlacement) (Just PawnPlacement) = runStrategiesPawnPlacement --should get caught from the next two
-roundSelector state (Just PawnPlacement) _                    = runStrategiesPawnPlacement
-roundSelector state _                    (Just PawnPlacement) = runStrategiesPawnPlacement
-roundSelector state (Just Normal)        (Just Normal)        = runStrategiesNormal -- only want to do this if both are normal
+roundSelector state Nothing              Nothing                = runStrategiesUpgrade
+roundSelector state Nothing              _                      = runStrategiesUpgrade
+roundSelector state _                    Nothing                = runStrategiesUpgrade
+roundSelector state _                    (Just PawnPlacement)   = runStrategiesPawnPlacement
+roundSelector state (Just Normal)        (Just Normal)          = runStrategiesNormal -- only want to do this if both are normal
 
 
 
@@ -158,7 +171,7 @@ doWin board White blackStrategy whiteStrategy = do
 
 
 
-
+  
 
 
 
@@ -184,8 +197,8 @@ replace2 xs (x,y) elem = replace xs y (replace (xs !! y) x elem)
 
 
 -- | Moves the piece from the first coordinate to the second coordinate and sets the first coordinate == Cell
-swapFill :: Board -> (Int,Int) -> (Int,Int) -> Cell -> Board
-swapFill board (w,x) (y,z) cell = replace2 (replace2 board (y,z) (getFromBoard board (w,x))) (w,x) cell
+moveFill :: Board -> (Int,Int) -> (Int,Int) -> Cell -> Board
+moveFill board (w,x) (y,z) cell = replace2 (replace2 board (y,z) (getFromBoard board (w,x))) (w,x) cell
 
 
 -- | The piece in coordinate 1 and the piece in coordinate 2 are swapped
@@ -201,14 +214,17 @@ swap board (w,x) (y,z) =
 
 -- | Takes two Cells and returns an Outcome (defined in CustomTools)
 --   Used to resolve clashes (two pieces move to the same cell)
---   Expects the Cell of the Black Player as the first arg
+--   Expects the Cell of the Black Player as the first arg, White Player as the second
 getOutcome :: Cell            -- ^ Black Cell
            -> Cell            -- ^ White Cell
            -> Maybe Outcome
 getOutcome BP WP = Just Tie
 getOutcome BK WK = Just Tie
 getOutcome BK WP = Just Win
-getOutcome BP WK = Just Loss 
+getOutcome BP WK = Just Loss
+getOutcome _  _  = Nothing
+
+
 
 
 -- | Takes a String and returns a Chooser (strategy)
@@ -238,14 +254,13 @@ runStrategiesNormal state strat1 strat2 = do
     move1 <- strat1 state Normal Black
     move2 <- strat2 state Normal White
     let moveType      = getMoveType (theBoard state) move1 move2 
-        outcome       = getOutcome (getFromBoard (theBoard state) ((fromJust move1) !! 1)) (getFromBoard (theBoard state) ((fromJust move2) !! 1))
         blackPlayed   = assessPlay Black Normal move1 (theBoard state)
         whitePlayed   = assessPlay White Normal move2 (theBoard state)
      in     putStrLn (show $ GameState (blackPlayed)
                                        ((blackPen state) + (getPen blackPlayed))
                                        (whitePlayed)
                                        ((whitePen state) + (getPen whitePlayed)) 
-                                       (updateBoard (theBoard state) moveType move1 move2 outcome))
+                                       (updateBoard' (theBoard state) moveType move1 move2))
 
 
 
@@ -273,7 +288,7 @@ assessPlay colour PawnPlacement move    board  =
 
 
 
--- | Checks that certain conditions are met in a normal move only (Not a Pass or Pawn Placement).
+-- | Checks that certain conditions are met in a NORMAL MOVE ONLY (Not a Pass or Pawn Placement).
 --   Returns False if;
 --      - a move's source is an empty cell
 --      - a move's destination is illegal in regard to the source piece's movement restrictions
@@ -284,6 +299,7 @@ assessPlay colour PawnPlacement move    board  =
 --      - a Knight's move in magnitude is anything but 2 rows by 1 column or 2 columns by 1 row
 --
 --   The Nothing case is not handled as assessPlay handles it. This may not be optimal or best practice.
+
 validityTest :: Player -> Cell                 -- ^ Piece occupying the source cell
                        -> Maybe [(Int, Int)]   -- ^ Move to be made, expects a Normal move
                        -> Cell                 -- ^ Piece occupying the destination cell
@@ -338,16 +354,17 @@ getPlay False colour (Just [(x0,y0)])         board = BadPlacedPawn ((getUpgrada
 
 
 
--- | Returns a MoveType which helps determine the outcome of a set of moves.
+-- | Returns a MoveType which helps determine how to update the board after a set of moves.
+--   The MoveType is only needed to describe a set of Normal Moves, all other combinations are NoEvent
 --   The second argument should be the move from the Black Strategy, the third argument should be the move from the White Strategy
+--   Only valid if moves passed in are valid.
 getMoveType ::  Board -> Maybe [(Int, Int)] -> Maybe [(Int, Int)] -> MoveType
 getMoveType board (Just [(a,b),(c,d)]) (Just [(w,x),(y,z)])
     |  (blackDst == whiteSrc) && (blackSrc == whiteDst)                   = Swap                  -- Players swapped places
     |  (blackDst == whiteSrc)                                             = WhiteDodge            -- Black dest == White src
     |  (whiteDst == blackSrc)                                             = BlackDodge            -- White dest == Black src
     |  (blackDst == whiteDst)                                             = Clash                 -- Destinations are the same
---    |  pieceA == WP || pieceA == WK                                       = BlackCapture
---    |  pieceB == BP || pieceB == BK                                       = WhiteCapture
+    |  otherwise                                                          = NoEvent               -- None of the above
     where pieceA    = getFromBoard board (c,d)
           pieceB    = getFromBoard board (y,z)
           blackSrc  = (a,b)
@@ -355,33 +372,59 @@ getMoveType board (Just [(a,b),(c,d)]) (Just [(w,x),(y,z)])
           whiteSrc  = (w,x)
           whiteDst  = (y,z)
 
+getMoveType _     _     _                                                 = NoEvent               -- If the not two normal moves, noEvent is automatic
 
 
   
+  
 -- | Updates the board according to certain conditions.
---   Takes the current baord, a MoveType, a Black move, a White move and a Maybe Outcome(for clashes only -- same destination moves)
---   Default is the last pattern where each source is moved to it's destination (can be a capture) and each source is replaced with E(mpty)
-updateBoard :: Board -> MoveType -> Maybe [(Int, Int)] -> Maybe [(Int, Int)] -> Maybe Outcome -> Board
-updateBoard board Clash         (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)]) (Just Win)
-    = replace2 (swapFill board (w0,x0) (w1,x1) E) (y0,z0) E
+--   Takes the current board, a MoveType, a Black move, a White move and returns an updated board
+--   If both Players Played, moveType is needed to determine outcome for possible clashes, dodges etc.
+--   If both Players PlacedPawn, moveType is needed to determine outcome in the case of a clash 
+--   All other combinations are NoEvent moves and there are four possible combinations of moves
+--      - that will affect the board.
+updateBoard :: Board -> Played -> Played -> Board
 
-updateBoard board Clash         (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)]) (Just Loss)
-    = replace2 (swapFill board (y0,z0) (y1,z1) E) (w0,x0) E
+updateBoard board (Played ((w0,x0),(w1,x1))) (Played ((y0,z0),(y1,z1)))           = 
+    let moveType = getMoveType board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
+     in 
+        updateBoard' board moveType (Just [(w0,x0),(w1,x1)])  (Just [(y0,z0),(y1,z1)])
 
-updateBoard board Clash         (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)]) (Just Tie)
-    = replace2 (replace2 board (w0,x0) E) (y0,z0) E
 
-updateBoard board Swap          (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)]) Nothing
-    = swap board (w0,x0) (y0,z0)
+updateBoard board (PlacedPawn ((w0,x0),(w1,x1))) (PlacedPawn ((y0,z0),(y1,z1)))   =   
+    let moveType = getMoveType board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
+     in 
+        updateBoard' board moveType (Just [(w0,x0),(w1,x1)])  (Just [(y0,z0),(y1,z1)])
 
-updateBoard board WhiteDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)]) Nothing
-    = swapFill board (y0,z0) (y1,z1) (getFromBoard board (w0,x0))
+   
+updateBoard board (Played ((w0,x0),(w1,x1)))        _                                   =   updateBoard' board NoEvent  (Just [(w0,x0),(w1,x1)])  Nothing
+          
+updateBoard board  _                               (Played ((y0,z0),(y1,z1)))           =   updateBoard' board NoEvent   Nothing                 (Just [(y0,z0),(y1,z1)])
 
-updateBoard board BlackDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)]) Nothing
-    = swapFill board (w0,x0) (w1,x1) (getFromBoard board (y0,z0))
+updateBoard board (PlacedPawned ((w0,x0),(w1,x1)))  _                                   =   updateBoard' board NoEvent  (Just [(w0,x0),(w1,x1)])  Nothing
+          
+updateBoard board  _                               (PlacedPawned ((y0,z0),(y1,z1)))     =   updateBoard' board NoEvent   Nothing                 (Just [(y0,z0),(y1,z1)])
 
-updateBoard board _             (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)]) Nothing
-    = swapFill (swapFill board (w0,x0) (w1,x1) E) (y0,z0) (y1,z1) E
+updateBoard board  _                               _                                    =   board
+
+
+
+
+ 
+  
+-- | Helper function for updateBoard -- actually executes the update whereas it's caller checks which moves to apply
+--   Catch all is the last pattern where each source is moved to it's destination (can be a capture) and each source is replaced with E(mpty)
+updateBoard' :: Board -> MoveType -> Maybe [(Int, Int)] -> Maybe [(Int, Int)] -> Board
+
+updateBoard' board Clash         blackMove                whiteMove                   = doUpdateClash board blackMove whiteMove
+
+updateBoard' board Swap          (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = swap board (w0,x0) (y0,z0)
+
+updateBoard' board WhiteDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveFill board (y0,z0) (y1,z1) (getFromBoard board (w0,x0))
+
+updateBoard' board BlackDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveFill board (w0,x0) (w1,x1) (getFromBoard board (y0,z0))
+
+updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveFill (moveFill board (w0,x0) (w1,x1) E) (y0,z0) (y1,z1) E
 
 
 
@@ -399,8 +442,16 @@ getPen  _                            = 0
 
 
 
-
-
+doUpdateClash :: Board -> Maybe [(Int, Int)] -> Maybe [(Int, Int)] -> Board
+doUpdateClash board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
+    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     (Just Win)     = replace2 (moveFill board (w0,x0) (w1,x1) E) (y0,z0) E
+    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     (Just Loss)    = replace2 (moveFill board (y0,z0) (y1,z1) E) (w0,x0) E
+    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     (Just Tie)     = replace2 (replace2 board (w0,x0) E) (y0,z0) E
+-- Need to handle (or work around) the Nothing case, this happens if a user tries to move an invalid piece and a clash occurs ie
+-- Black Move = 0 0 1 2
+-- White Move = 0 0 1 2
+-- This is technically a clash but getOutcome returns nothing because the first move is illegal.
+-- This may be worked around by avoiding attempting an update before checking the legality of the moves (probably easier)
 
 
 
