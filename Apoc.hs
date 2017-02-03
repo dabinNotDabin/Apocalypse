@@ -151,43 +151,6 @@ doWin board White blackStrategy whiteStrategy = do
 
 
 
-
-
-
-
-
--- | Checks whether either Player has reached 0 pawns
---   If zero pawns are found, returns the winner (Black or White)
---   Returns Nothing for No Winner
-checkForWin :: Board -> Maybe Player
-checkForWin board
-    | ((getNumPawns board Black) == 0)    = Just White
-    | ((getNumPawns board White) == 0)    = Just Black
-    | otherwise                           = Nothing
-
-
-
-
-
-
-
--- | Checks whether either Player has accumulated 2 penalty points
-checkPenalties :: GameState -> Player -> Bool
-checkPenalties state Black = ((blackPen state) >= 2)
-checkPenalties state White = ((whitePen state) >= 2)
-
-
-  
-
-
-
-
-
-
-
-
-
-
 ---2D list utility functions-------------------------------------------------------
 
 -- | Replaces the nth element in a row with a new element.
@@ -214,6 +177,28 @@ swap board (w,x) (y,z) =
         pieceW = getFromBoard board (y,z)
      in  replace2 (replace2 board (y,z) pieceB) (w,x) pieceW
 
+
+
+
+
+
+
+
+
+
+
+
+
+-- ========================================================================================
+-- =============================Short Util Functions=======================================
+-- ========================================================================================
+
+
+-- | Takes a Played type (Passed, Goofed, ...) and returns an integer penalty amount for that play.
+getPen :: Played -> Int
+getPen (Goofed        ((_,_),(_,_))) = 1
+getPen (BadPlacedPawn ((_,_),(_,_))) = 1
+getPen  _                            = 0
 
 
 
@@ -253,6 +238,39 @@ getUpgradablePawnLocation board White     = ([(a,4) | a <- [0..4], (getFromBoard
 
 
 
+-- | Checks whether either Player has reached 0 pawns
+--   If zero pawns are found, returns the winner (Black or White)
+--   Returns Nothing for No Winner
+checkForZeroPawns :: Board -> Maybe Player
+checkForZeroPawns board
+    | ((getNumPawns board Black) == 0)    = Just White
+    | ((getNumPawns board White) == 0)    = Just Black
+    | otherwise                           = Nothing
+
+
+
+-- | Checks whether either Player has accumulated 2 penalty points
+checkPenalties :: GameState -> Player -> Bool
+checkPenalties state Black = ((blackPen state) >= 2)
+checkPenalties state White = ((whitePen state) >= 2)
+
+
+
+
+
+
+
+
+
+
+  
+
+-- ========================================================================================
+-- =================================Higher Order Functions=================================
+-- ========================================================================================
+
+
+
 -- Currently, fromJust will throw exceptions (not optimal) need a workaround or else only use this for a normal turn
 -- move phase and create a function selector that decides between run normal, run pawn placement, and run upgrade functions
 -- currently prints the game state but can be modified to print the state as a side effect and then return a gamestate
@@ -284,6 +302,19 @@ runStrategiesPawnPlacement state strategy colour = do
 
 
 
+
+
+
+
+
+
+
+-- ========================================================================================
+-- =================================Check Move Functions===================================
+-- ========================================================================================
+
+
+
 --can use let to represent getFromBoard board ....  and validityTest outcomes to clean things up
 --then use gaurds instead of passing a Bool into getPlay
 assessPlay :: Player -> PlayType -> Maybe [(Int, Int)] -> Board -> Played
@@ -293,8 +324,6 @@ assessPlay colour Normal        move    board  =
     getPlay (validityTest colour (getFromBoard (board) (fromJust move !! 0)) move (getFromBoard (board) (fromJust move !! 1))) colour move board  
 assessPlay colour PawnPlacement move    board  =
     getPlay (validityTest' move (getFromBoard (board) (fromJust move !! 0))) colour move board
-
-
 
 
 
@@ -381,8 +410,32 @@ getPlay False colour (Just [(x0,y0)])         board = BadPlacedPawn ((getUpgrada
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- ========================================================================================
+-- =================================Update Board Functions=================================
+-- ========================================================================================
+
+
+
+
+
 -- | Returns a MoveType which helps determine how to update the board after a set of moves.
---   The MoveType is only needed to describe a set of Normal Moves, all other combinations are NoEvent
+--   The MoveType is only needed to describe a set of Normal Moves, all other combinations result in NoEvent
 --   The second argument should be the move from the Black Strategy, the third argument should be the move from the White Strategy
 --   Only valid if moves passed in are valid.
 getMoveType ::  Board -> Maybe [(Int, Int)] -> Maybe [(Int, Int)] -> MoveType
@@ -460,18 +513,6 @@ updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)
 updateBoard' board NoEvent        Nothing                 (Just [(y0,z0),(y1,z1)])    = moveFill board (y0,z0) (y1,z1) E
 
 updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) Nothing                     = moveFill board (w0,x0) (w1,x1) E 
-
-
-
-
-
-
-
--- | Takes a Played type (Passed, Goofed, ...) and returns an integer penalty amount for that play.
-getPen :: Played -> Int
-getPen (Goofed        ((_,_),(_,_))) = 1
-getPen (BadPlacedPawn ((_,_),(_,_))) = 1
-getPen  _                            = 0
 
 
 
