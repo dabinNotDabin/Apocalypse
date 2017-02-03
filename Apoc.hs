@@ -65,43 +65,29 @@ main' args = do
     b <- getLine
     
             
--------------------------------------------------------------------------------------TODO 2) check strategy names, if either are illegal, print a list of strategy names and quit
--------------------------------------------------------------------------------------TODO 2)                       if both legal, run strategies against one another
+-------------------------------------------------------------------------------------TODO 2) check strategy names(a and b), if either are illegal, print a list of strategy names and quit
+-------------------------------------------------------------------------------------TODO 2)                                if both legal, run strategies against one another (interactive)
 
     
     let blackStrategy = getStrategy a
         whiteStrategy = getStrategy b
 
+    blackMove <- blackStrategy initBoard Normal Black
+    whiteMove <- whiteStrategy initBoard Normal White
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    putStrLn "\nThe initial board:"
     print initBoard
 
-    putStrLn $ "\nThe initial board with back human (the placeholder for human) strategy having played one move\n"
-               ++ "(clearly illegal as we must play in rounds!):"
-    move1 <- blackStrategy initBoard Normal Black
-    move2 <- whiteStrategy initBoard Normal White
+    print (runStrategiesNormal initBoard blackMove whiteMove)
     
-    let moveType      = getMoveType (theBoard initBoard) move1 move2 
-        blackPlayed   = assessPlay Black Normal move1 (theBoard initBoard)
-        whitePlayed   = assessPlay White Normal move2 (theBoard initBoard)
-     in     putStrLn (show $ GameState (blackPlayed)
-                                       ((blackPen initBoard) + (getPen blackPlayed))
-                                       (whitePlayed)
-                                       ((whitePen initBoard) + (getPen whitePlayed)) 
-                                       (updateBoard (theBoard initBoard) blackPlayed whitePlayed)) -- this updates the board regardless of the outcome of the play, need to check for illegal plays
+
+
+
+
+
+
+
+
+
 
 {--
 
@@ -124,11 +110,10 @@ doTurn state blackStrategy whiteStrategy =
 
 
 
-roundSelector :: GameState -> Maybe PlayType -> Maybe PlayType -> GameState
-roundSelector state Nothing              Nothing                = runStrategiesUpgrade
-roundSelector state Nothing              _                      = runStrategiesUpgrade
-roundSelector state _                    Nothing                = runStrategiesUpgrade
+roundSelector :: GameState -> Maybe PlayType -> Maybe PlayType -> IO()
+roundSelector state (Just PawnPlacement) (Just PawnPlacement)   = runStrategiesPawnPlacement
 roundSelector state _                    (Just PawnPlacement)   = runStrategiesPawnPlacement
+roundSelector state (Just PawnPlacement) _                      = runStrategiesPawnPlacement
 roundSelector state (Just Normal)        (Just Normal)          = runStrategiesNormal -- only want to do this if both are normal
 
 
@@ -208,12 +193,11 @@ getPen  _                            = 0
 --   Expects the Cell of the Black Player as the first arg, White Player as the second
 getOutcome :: Cell            -- ^ Black Cell
            -> Cell            -- ^ White Cell
-           -> Maybe Outcome
-getOutcome BP WP = Just Tie
-getOutcome BK WK = Just Tie
-getOutcome BK WP = Just Win
-getOutcome BP WK = Just Loss
-getOutcome _  _  = Nothing
+           -> Outcome
+getOutcome BP WP = Tie
+getOutcome BK WK = Tie
+getOutcome BK WP = Win
+getOutcome BP WK = Loss
 
 
 
@@ -257,10 +241,11 @@ checkPenalties state White = ((whitePen state) >= 2)
 
 
 
-
-
-
-
+{--
+getMove :: Chooser -> GameState -> PlayType -> Player -> Maybe [(Int,Int)]
+getMove strategy state playType colour = do
+    move <- strategy state playType colour
+--}
 
 
   
@@ -271,32 +256,40 @@ checkPenalties state White = ((whitePen state) >= 2)
 
 
 
--- Currently, fromJust will throw exceptions (not optimal) need a workaround or else only use this for a normal turn
--- move phase and create a function selector that decides between run normal, run pawn placement, and run upgrade functions
--- currently prints the game state but can be modified to print the state as a side effect and then return a gamestate
-runStrategiesNormal :: GameState -> Chooser -> Chooser -> IO()
-runStrategiesNormal state strat1 strat2 = do
-    move1 <- strat1 state Normal Black
-    move2 <- strat2 state Normal White
-    let moveType      = getMoveType (theBoard state) move1 move2 
-        blackPlayed   = assessPlay Black Normal move1 (theBoard state)
-        whitePlayed   = assessPlay White Normal move2 (theBoard state)
-     in     putStrLn (show $ GameState (blackPlayed)
-                                       ((blackPen state) + (getPen blackPlayed))
-                                       (whitePlayed)
-                                       ((whitePen state) + (getPen whitePlayed)) 
-                                       (updateBoard (theBoard state) blackPlayed whitePlayed))
+
+-- | Takes two moves, assuming the first to be Black's move and the second to be White's move and executes one turn.
+runStrategiesNormal :: GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> GameState
+runStrategiesNormal state blackMove whiteMove = 
+    let blackPlayed   = assessPlay Black Normal blackMove (theBoard state)
+        whitePlayed   = assessPlay White Normal whiteMove (theBoard state)
+     in          GameState (blackPlayed)
+                           ((blackPen state) + (getPen blackPlayed))
+                           (whitePlayed)
+                           ((whitePen state) + (getPen whitePlayed)) 
+                           (updateBoard (theBoard state) blackPlayed whitePlayed)
 
 
 
 
 
--- | Dummy implementation, not finished
-runStrategiesPawnPlacement :: GameState -> Chooser -> Player -> IO()
-runStrategiesPawnPlacement state strategy colour = do
-    move <- strategy state PawnPlacement colour
-    putStrLn "hey"
 
+
+{--
+-- | Not Done
+runStrategiesPawnPlacement :: GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> GameState
+runStrategiesPawnPlacement state blackMove whiteMove = 
+    let blackPlayed   = assessPlay Black Normal blackMove (theBoard state)
+        whitePlayed   = assessPlay White Normal whiteMove (theBoard state)
+     in           GameState (blackPlayed)
+                           ((blackPen state) + (getPen blackPlayed))
+                           (whitePlayed)
+                           ((whitePen state) + (getPen whitePlayed)) 
+                           (updateBoard (theBoard state) blackPlayed whitePlayed)
+
+
+
+
+--} 
 
 
 
@@ -321,9 +314,14 @@ assessPlay :: Player -> PlayType -> Maybe [(Int, Int)] -> Board -> Played
 assessPlay _      Normal        Nothing board  = Passed
 assessPlay _      PawnPlacement Nothing board  = NullPlacedPawn
 assessPlay colour Normal        move    board  =
-    getPlay (validityTest colour (getFromBoard (board) (fromJust move !! 0)) move (getFromBoard (board) (fromJust move !! 1))) colour move board  
+    let cellA = (getFromBoard (board) (fromJust move !! 0))
+        cellB = (getFromBoard (board) (fromJust move !! 1))
+     in 
+        getPlay (validityTest colour cellA move cellB) colour move board  
 assessPlay colour PawnPlacement move    board  =
-    getPlay (validityTest' move (getFromBoard (board) (fromJust move !! 0))) colour move board
+    let cell = (getFromBoard (board) (fromJust move !! 0))
+     in 
+        getPlay (validityTest' move cell) colour move board
 
 
 
@@ -378,7 +376,7 @@ validityTest _     WK (Just [(x0,y0),(x1,y1)]) _  = (((abs (y0 - y1) == 2) && (a
 
 
 
--- | Checks that certain conditions are met for a Pawn Placement
+-- | Checks that certain conditions are met for a PAWN PLACEMENT ONLY
 --   Results in True if the destination (2nd arg) is an empty cell
 --   Results in False if the destination (2nd arg) is not empty 
 validityTest' :: Maybe [(Int, Int)] -> Cell -> Bool
@@ -452,7 +450,7 @@ getMoveType board (Just [(a,b),(c,d)]) (Just [(w,x),(y,z)])
           whiteSrc  = (w,x)
           whiteDst  = (y,z)
 
-getMoveType _     _     _                                                 = NoEvent               -- If the not two normal moves, noEvent is automatic
+getMoveType _     _     _                                                 = NoEvent               -- If not two normal moves, noEvent is automatic
 
 
   
@@ -462,12 +460,12 @@ getMoveType _     _     _                                                 = NoEv
   
   
   
--- | Updates the board according to certain conditions.
---   Takes the current board, a MoveType, a Black move, a White move and returns an updated board
+-- | Checks which moves to apply according to the Played arguments.
+--   Takes the current board, a MoveType, a Black Played, a White Played and returns an updated board
 --   If both Players Played, moveType is needed to determine outcome for possible clashes, dodges etc.
---   If both Players PlacedPawn, moveType is needed to determine outcome in the case of a clash 
---   All other combinations are NoEvent moves and there are four possible combinations of moves
---      - that will affect the board.
+--   If both Players PlacedPawn, moveType is needed to determine outcome in the case of a clash.
+--   All other combinations are NoEvent moves and there are four possible combinations of NoEvent moves
+--      - that will affect the board and the last pattern is a catch all that does not apply changes.
 updateBoard :: Board -> Played -> Played -> Board
 
 updateBoard board (Played ((w0,x0),(w1,x1))) (Played ((y0,z0),(y1,z1)))               = 
@@ -521,9 +519,9 @@ updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) Nothing               
 
 doUpdateClash :: Board -> Maybe [(Int, Int)] -> Maybe [(Int, Int)] -> Board
 doUpdateClash board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
-    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     (Just Win)     = replace2 (moveFill board (w0,x0) (w1,x1) E) (y0,z0) E
-    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     (Just Loss)    = replace2 (moveFill board (y0,z0) (y1,z1) E) (w0,x0) E
-    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     (Just Tie)     = replace2 (replace2 board (w0,x0) E) (y0,z0) E
+    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     Win     = replace2 (moveFill board (w0,x0) (w1,x1) E) (y0,z0) E
+    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     Loss    = replace2 (moveFill board (y0,z0) (y1,z1) E) (w0,x0) E
+    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     Tie     = replace2 (replace2 board (w0,x0) E) (y0,z0) E
 -- Need to handle (or work around) the Nothing case, this happens if a user tries to move an invalid piece and a clash occurs ie
 -- Black Move = 0 0 1 2
 -- White Move = 0 0 1 2
