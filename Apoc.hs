@@ -311,6 +311,7 @@ assessPlay colour Normal        move    board  =
         cellB = (getFromBoard (board) (fromJust move !! 1))
      in 
         getPlay (validityTest colour cellA move cellB) colour move board  
+
 assessPlay colour PawnPlacement move    board  =
     let cell = (getFromBoard (board) (fromJust move !! 0))
      in 
