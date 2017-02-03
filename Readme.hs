@@ -32,12 +32,12 @@ where the game always starts with;
     
 playGame :: Bool -> GameState -> Chooser -> Chooser -> IO()
 playGame False state blackStrat whiteStrat = do
-    let blackPlayType = determinePlayType
-        whitePlayType = determinePlayType
+    let blackPlayType = determinePlayType .....
+        whitePlayType = determinePlayType .....
     move1 <- blackStrat state blackPlayType Black
     move2 <- whiteStrat state whitePlayType White
-    ... execute round using roundSelector
-    ... print results
+    ... execute round ....
+    ... print results ....
     playGame winCondition? newState blackStrat whiteStrat
     
 playGame True state blackStrat whiteStrat = do
