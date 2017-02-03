@@ -31,17 +31,25 @@ where the game always starts with;
 
     
 playGame :: Bool -> GameState -> Chooser -> Chooser -> IO()
-playGame False state blackStrat whiteStrat = do
-    let blackPlayType = determinePlayType .....
+playGame False state blackStrat whiteStrat
+    | pawnUpgradeRequired       = do
+        runUpgrade .....
+        playGame winCondition? newState blackStrat whiteStrat   -- if a Player upgrades their last pawn, the other Player wins
+    | not pawnUpgradeRequired   = do
+        let blackPlayType = determinePlayType .....
         whitePlayType = determinePlayType .....
-    move1 <- blackStrat state blackPlayType Black
-    move2 <- whiteStrat state whitePlayType White
-    ... execute round ....
-    ... print results ....
-    playGame winCondition? newState blackStrat whiteStrat
+        move1 <- blackStrat state blackPlayType Black
+        move2 <- whiteStrat state whitePlayType White
+        ... execute round ....
+        ... print results ....
+        playGame winCondition? newState blackStrat whiteStrat
     
 playGame True state blackStrat whiteStrat = do
     do output for winning conditions satisfying IO() return type
 
 
+
 just my idea that'll work well with what I already have written.
+
+
+
