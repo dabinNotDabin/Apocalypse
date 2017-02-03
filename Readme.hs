@@ -2,6 +2,13 @@
 
 TODO : TODO clauses can be found in the .hs files where they are relevant
 
+Notes : I think my functions that determine play type are wrong but I have to ask Rob.
+          Upgrade and PawnPlacement just look for any black pawn in row 0 or any white pawn in row 4.
+          If the player is supposed to give a coordinate for pawn placement but they pass, is that pawn
+          upgrade attempted again?, is it a penalty?
+
+
+For Main
 
 Whichever function we get input in ... 
 ie;
@@ -12,8 +19,8 @@ ie;
 This is because the operator <- must be within a do block
 
 We can create a playGame function that is like our highest order function but it has to return some IO type.
-If it takes two chooser types, it can get the moves from the strategies as shown above since it's an IO type
-and the game always starts with;
+If it takes two chooser types, it can get the moves from the strategies as shown above
+where the game always starts with;
   state    ==   initBoard and 
   PlayType ==   Normal (for both players)
  
@@ -24,13 +31,6 @@ and the game always starts with;
 
     
 playGame :: Bool -> GameState -> Chooser -> Chooser -> IO()
-playGame False initBoard blackStrat whiteStrat = do
-    move1 <- blackStrat initBoard Normal Black
-    move2 <- whiteStrat initBoard Normal White
-    .... execute round using roundSelector
-    .... print results
-    playGame winCondition? newState blackStrat whiteStrat
-    
 playGame False state blackStrat whiteStrat = do
     let blackPlayType = determinePlayType
         whitePlayType = determinePlayType
