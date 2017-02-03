@@ -241,13 +241,6 @@ checkPenalties state White = ((whitePen state) >= 2)
 
 
 
-{--
-getMove :: Chooser -> GameState -> PlayType -> Player -> Maybe [(Int,Int)]
-getMove strategy state playType colour = do
-    move <- strategy state playType colour
---}
-
-
   
 
 -- ========================================================================================
