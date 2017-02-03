@@ -114,13 +114,15 @@ promptUser Normal        colour = putStrLn $ "Enter the move coordinates for pla
 
 
 
-{--
+
 getEmptyCoordinates :: Board -> [(Int,Int)]
-getEmptyCoordinates board = [(a,b) | a <- [0..4], b <- [0..4], ((getFromBoard board (a,b)) == E))]
+getEmptyCoordinates board = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == E]
+
+{--
+getMoves :: Board -> Player -> [(Int,Int)]
+getMoves board = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == E]
+
 --}
-
-
-
 
 
 

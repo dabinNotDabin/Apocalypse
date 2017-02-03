@@ -36,6 +36,28 @@ data Outcome  = Win   -- ^ Used to indicate a Win in a Clash  -- Taken from the 
                 deriving (Eq)
 
  
+
+
+
+data PlayOption = CapturePawn
+                | CaptureKnight
+                | Upgrade2Knight
+                | PlacePawn
+                | Regular
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 -- | Used to link strategies (Chooser type) with a String for their name.
 --   Useful in printing the outcome of a round.
