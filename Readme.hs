@@ -44,4 +44,4 @@ playGame True state blackStrat whiteStrat = do
     do output for winning conditions satisfying IO() return type
 
 
-just my idea that'll work well with what I already have written but definitely not saying it's the right way
+just my idea that'll work well with what I already have written.
