@@ -54,7 +54,7 @@ main' args = do
 -------------------------------------------------------------------------------------TODO 1)                                                               see point 6) in functional requirements (spec)
  
 
-
+    let strategies = [(human, "human"),(greedy, "greedy"),(evasive, "evasive")] 
 
     putStrLn "  greedy"
     putStrLn "  evasive"
@@ -67,6 +67,8 @@ main' args = do
             
 -------------------------------------------------------------------------------------TODO 2) check strategy names(a and b), if either are illegal, print a list of strategy names and quit
 -------------------------------------------------------------------------------------TODO 2)                                if both legal, run strategies against one another (interactive)
+
+
 
     
     let blackStrategy = getStrategy a
@@ -213,6 +215,20 @@ getStrategy strategy
 
 
 
+
+
+printStrategies :: [(Chooser, String)] -> IO()
+printStrategies []     = putStr ""
+printStrategies (x:xs) = do
+    putStrLn ("  " ++ (snd x))
+    printStrategies xs
+
+
+
+
+
+
+
 -- | Takes a Board, a Player (Black or White) and returns the coordinate (if any) that an upgradable pawn exists for that Player
 getUpgradablePawnLocation :: Board -> Player -> (Int, Int)
 getUpgradablePawnLocation board Black     = ([(a,0) | a <- [0..4], (getFromBoard (board) (a,0)) == BP]) !! 0
@@ -241,7 +257,16 @@ checkPenalties state White = ((whitePen state) >= 2)
 
 
 
-  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 -- ========================================================================================
 -- =================================Higher Order Functions=================================
@@ -296,7 +321,7 @@ runStrategiesPawnPlacement state blackMove whiteMove =
 
 
 -- ========================================================================================
--- =================================Check Move Functions===================================
+-- =====================Check Move Functions -- More In Custom Tools=======================
 -- ========================================================================================
 
 
@@ -316,6 +341,25 @@ assessPlay colour PawnPlacement move    board  =
     let cell = (getFromBoard (board) (fromJust move !! 0))
      in 
         getPlay (validityTest' move cell) colour move board
+
+
+
+
+
+
+-- | Determines the type of play that was made
+--   Can be Goofed, Played, PlacedPawn, or BadPlacedPawn
+--   All other play types must be determined by examining the state of the board before a move is made or prior to this call.
+getPlay :: Bool -> Player -> Maybe [(Int, Int)] -> Board -> Played
+getPlay True  _      (Just [(x0,y0),(x1,y1)]) _     = Played ((x0,y0),(x1,y1))
+getPlay True  colour (Just [(x0,y0)])         board = PlacedPawn ((getUpgradablePawnLocation board colour),(x0,y0))
+getPlay False _      (Just [(x0,y0),(x1,y1)]) _     = Goofed ((x0,y0),(x1,y1))
+getPlay False colour (Just [(x0,y0)])         board = BadPlacedPawn ((getUpgradablePawnLocation board colour),(x0,y0))
+
+
+
+
+
 
 
 
@@ -376,31 +420,6 @@ validityTest _     WK (Just [(x0,y0),(x1,y1)]) _  = (((abs (y0 - y1) == 2) && (a
 validityTest' :: Maybe [(Int, Int)] -> Cell -> Bool
 validityTest' (Just [(x0,y0)]) E = True  
 validityTest' (Just [(x0,y0)]) _ = False
-
-
-
-
-
-
-
-
-
-
--- | Determines the type of play that was made
---   Can be Goofed, Played, PlacedPawn, or BadPlacedPawn
---   All other play types must be determined by examining the state of the board before a move is made or prior to this call.
-getPlay :: Bool -> Player -> Maybe [(Int, Int)] -> Board -> Played
-getPlay True  _      (Just [(x0,y0),(x1,y1)]) _     = Played ((x0,y0),(x1,y1))
-getPlay True  colour (Just [(x0,y0)])         board = PlacedPawn ((getUpgradablePawnLocation board colour),(x0,y0))
-getPlay False _      (Just [(x0,y0),(x1,y1)]) _     = Goofed ((x0,y0),(x1,y1))
-getPlay False colour (Just [(x0,y0)])         board = BadPlacedPawn ((getUpgradablePawnLocation board colour),(x0,y0))
-
-
-
-
-
-
-
 
 
 
