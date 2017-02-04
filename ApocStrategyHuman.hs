@@ -144,7 +144,7 @@ getPieceLocations board White = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard
 
 
 
--- | Gets a list of coordinates that represent the valid moves for a Knight (whose location is the 1st argument)
+-- | Gets a list of coordinates that represent the valid moves for a Knight (whose location is the 3rd argument)
 --   Assumes the board is empty except for the knight whose location is the 1st argument
 getKnightMoves :: Board -> Player -> (Int, Int) -> [(Int, Int)]
 getKnightMoves board Black (x,y) = 
