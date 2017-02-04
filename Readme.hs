@@ -1,6 +1,30 @@
 # Apocalypse
 
-TODO : TODO clauses can be found in the .hs files where they are relevant
+TODO 1 and 2 are also commented out in APOC.hs where they are applicable
+
+TODO 1) check args, if zero, we step into interactive mode (pass over this section of code)
+TODO 1)             if two, check that they are legal strategy names. If they are, run playGame with args
+TODO 1)                                                               If not, print list of strategy names (see util functions in Apoc.hs)
+TODO 1)                                                               see point 6) in functional requirements (spec)
+ 
+TODO 2) check strategy names(a and b), if either are illegal, print a list of strategy names and quit
+TODO 2)                                if both legal, run strategies against one another (interactive)
+
+
+TODO 3 is commented out in ApocStrategyHuman.hs where it needs to be done. Usman said he was thinking of attempting this one.
+
+TODO 3) if playType is Normal, parse MAX 4 integers from input
+TODO 3) if playType is PawnPlacement, parse MAX 2 integers from input
+TODO 3) note that user input can contain comments so there may be more input following the move coordinates (see spec)
+TODO 3) check that all integers, x are such that 0 <= x <= 4 for both types of input.
+TODO 3) I assume that if there are more integers than required, the remaining
+TODO 3) will be considered a comment but I'll check with Rob
+TODO 3) If not enough integers are supplied or integers are out of range, user should be reprompted.
+TODO 3) If the user enters say 0 0 3 3, this is a penaltied move but still valid input, don't check for move validity here
+
+
+
+
 
 Notes : If a player passes on a pawn placement, it's a penalty.
       : If a player misses a capture, it's not a penalty (unfortunately our idea won't work)
