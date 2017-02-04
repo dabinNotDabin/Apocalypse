@@ -2,10 +2,13 @@
 
 TODO : TODO clauses can be found in the .hs files where they are relevant
 
-Notes : I think my functions that determine play type are wrong but I have to ask Rob.
-          Upgrade and PawnPlacement just look for any black pawn in row 0 or any white pawn in row 4.
-          If the player is supposed to give a coordinate for pawn placement but they pass, is that pawn
-          upgrade attempted again?, is it a penalty?
+Notes : If a player passes on a pawn placement, it's a penalty.
+      : If a player misses a capture, it's not a penalty (unfortunately our idea won't work)
+      : If both players reach  2 penalty points in the same round, it's a tie
+      : If both players pass the same round it's a tie and the game ends
+      : Rob said he isn't sure if, in the case that two pawns are to be upgraded on the same turn, the
+        output should be done in one step or two.
+      : 
 
 
 For Main
