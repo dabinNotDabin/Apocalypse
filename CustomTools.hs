@@ -9,11 +9,17 @@ Description : Custom Data Types and Functions
 module CustomTools (
     MoveType (BlackDodge, WhiteDodge, Clash, Swap, NoEvent),
     Outcome (Win, Loss, Tie),
+    Strategies (StrategyList),
+    PlayOption (CapturePawn, CaptureKnight, Upgrade2Knight, PlacePawn, Regular),
+    MovesForPiece,
+    MoveListForPlayer,
     determinePlayType,
     determineBlackPlayType,
     determineWhitePlayType,
     getNumKnights,
-    getNumPawns
+    getNumPawns,
+    testBoard,
+    testBoard2
 ) where
 
 import ApocTools
@@ -48,9 +54,13 @@ data PlayOption = CapturePawn
 
 
 
+-- Triple that contains;
+--  A cell, it's coordinate, a list of tuples each containing a coordinate and it's corresponding PlayOption
+--  This can be used to represent a piece on the board, it's location, and a set of moves it may make. 
+type MovesForPiece = (  Cell , (Int, Int) ,  [((Int, Int) , PlayOption)]  )
 
 
-
+type MoveListForPlayer = [MovesForPiece]
 
 
 
@@ -61,11 +71,10 @@ data PlayOption = CapturePawn
  
 -- | Used to link strategies (Chooser type) with a String for their name.
 --   Useful in printing the outcome of a round.
-type Strategies = [(Chooser, String)]
+data Strategies = StrategyList [(Chooser, String)]
 
 
 
-data StrategyList = StrategyList { strategyList :: Strategies }
 
 
 
@@ -115,8 +124,6 @@ getNumPawns board White     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard bo
 
 
 
-
-
 instance Show MoveType where
          show BlackDodge = "Black Dodge"
          show WhiteDodge = "White Dodge"
@@ -135,15 +142,34 @@ instance Show Outcome where
 
 
 
+instance Show PlayOption where
+         show CapturePawn    = "Capture Pawn"
+         show CaptureKnight  = "Capture Knight"
+         show Upgrade2Knight = "Upgrade"
+         show PlacePawn      = "Place Pawn"
+         show Regular        = "Regular"
 
 
 
 
+testBoard       :: GameState
+testBoard       = GameState Init 0 Init 0
+                  [ [E, WP, WP, WP, WK],
+                    [WP, E , E , E , WP],
+                    [E , E , WK , E , E ],
+                    [BP, E , E , E , BP],
+                    [BK, BP, BP, BP, BK] ]
 
 
 
 
-
+testBoard2       :: GameState
+testBoard2       = GameState Init 0 Init 0
+                  [ [WK, WP, E, WP, WK],
+                    [WP, E , BP , E , WP],
+                    [E , E , E , E , E ],
+                    [BP, E , E , E , BP],
+                    [BK, BP, BP, BP, BK] ]
 
 
 

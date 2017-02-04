@@ -22,10 +22,12 @@ Apocalypse game.  It has VERY little functionality.
 module ApocStrategyHuman (
    human,
    greedy,
-   evasive
+   evasive,
+   populateMoveList
    ) where
 
 import ApocTools
+import CustomTools
 
 {- | This is just a placeholder for the human strategy: it always chooses to play
      (0,0) to (2,1).
@@ -87,7 +89,7 @@ evasive b PawnPlacement c = return (Just [(2,2)])
 -- If the list is of length 2, a singleton list containing a coordinate will be returned.
 -- If the list is of length 0, Nothing is returned.
 -- Example, [1,2,3,4] -> [(1,2),(3,4)] ....... [1,2] -> [(1,2)] ......... [] -> Nothing
--- This function expects input handling to be 
+-- This function expects input checking to be done prior
 inputToCoordinates :: [Int] -> Maybe [(Int, Int)]
 inputToCoordinates [x0, y0, x1, y1]  = Just [(x0,y0),(x1,y1)]
 inputToCoordinates [x0, y0]          = Just [(x0,y0)]
@@ -114,15 +116,161 @@ promptUser Normal        colour = putStrLn $ "Enter the move coordinates for pla
 
 
 
-
+-- | Returns a list of coordinates (may be empty) 
 getEmptyCoordinates :: Board -> [(Int,Int)]
 getEmptyCoordinates board = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == E]
 
-{--
-getMoves :: Board -> Player -> [(Int,Int)]
-getMoves board = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == E]
 
---}
+-- | Gets a list of coordinates that represent the locations of any Pawns on the Board of the specified Player
+getPawnLocations :: Board -> Player -> [(Int,Int)]
+getPawnLocations board Black = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == BP]
+getPawnLocations board White = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == WP]
+
+
+-- | Gets a list of coordinates that represent the locations of any Knights on the Board of the specified Player
+getKnightLocations :: Board -> Player -> [(Int,Int)]
+getKnightLocations board Black = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == BK]
+getKnightLocations board White = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == WK]
+
+
+
+getPieceLocations :: Board -> Player -> [(Int,Int)]
+getPieceLocations board Black = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == BK || (getFromBoard board (a,b)) == BP]
+getPieceLocations board White = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == WK || (getFromBoard board (a,b)) == WP]
+
+
+
+-- | Gets a list of coordinates that represent the valid moves for a Knight (whose location is the 1st argument)
+--   Assumes the board is empty except for the knight whose location is the 1st argument
+getKnightMoves :: Board -> Player -> (Int, Int) -> [(Int, Int)]
+getKnightMoves board Black (x,y) = 
+    [(a,b) | a <- [0..4], b <- [0..4], ((getFromBoard board (a,b) == E)  ||  
+                                       (getFromBoard board (a,b) == WP)  || 
+                                       (getFromBoard board (a,b) == WK))  &&
+                                       ((abs (x - a) == 1  &&  abs (y - b) == 2)   ||  (abs (x - a) == 2  &&  abs (y - b) == 1))   ]  
+getKnightMoves board White (x,y) = 
+    [(a,b) | a <- [0..4], b <- [0..4], ((getFromBoard board (a,b) == E)  ||  
+                                       (getFromBoard board (a,b) == BP)  || 
+                                       (getFromBoard board (a,b) == BK))  &&
+                                       ((abs (x - a) == 1  &&  abs (y - b) == 2)   ||  (abs (x - a) == 2  &&  abs (y - b) == 1))   ]  
+
+
+-- | Gets a list of coordinates that represent the valid moves for a Pawn (whose location is the 3rd argument)
+--   Checks for capture possibilities to represent all diagonal move choices as well as forward only moves
+getPawnMoves :: Board -> Player -> (Int, Int) -> [(Int, Int)]
+getPawnMoves board Black (x,y) = 
+    [(a,b) | a <- [0..4], b <- [0..4], ((getFromBoard board (a,b) == WK || getFromBoard board (a,b) == WP) &&
+                                       (abs (x - a) == 1) && ((y - b) == 1))                               ||
+                                       ((getFromBoard board (a,b) == E) && ((x - a) == 0) && ((y - b) == 1))  ] 
+getPawnMoves board White (x,y) = 
+    [(a,b) | a <- [0..4], b <- [0..4], ((getFromBoard board (a,b) == BK || getFromBoard board (a,b) == BP) &&
+                                       (abs (x - a) == 1) && ((b - y) == 1))                               ||
+                                       ((getFromBoard board (a,b) == E) && ((x - a) == 0) && ((b - y) == 1))  ] 
+
+
+
+
+
+-- | Takes;
+--      A List of coordinates (that may represent valid move choices for some Player)
+--      A list of coordinates (that may represent opposing piece locations)
+--      Returns the matching coordinates from the first two lists
+--      Note: There are no restrictions on the meaning of the lists that are passed in
+getCaptureLocations :: [(Int, Int)] -> [(Int, Int)] -> Maybe [(Int, Int)]
+getCaptureLocations [] []     = Nothing
+getCaptureLocations []  _     = Nothing
+getCaptureLocations  _ []     = Nothing
+getCaptureLocations xs ys     = Just [(a,b) | a <- [0..4], b <- [0..4], (elem (a,b) xs) && (elem (a,b) ys)]
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- ========================================================================================
+-- =========================Functions Used to Find Available Moves=========================
+-- ========================================================================================
+
+
+-- | Gets the PlayOption for one specific move where the source is the first arg and the destination is the second arg
+-- | Doesn't validate moves, assumes the move to be valid for the piece at the source coordinate
+getPlayOption :: Board -> Player -> (Int, Int) -> (Int, Int) -> PlayOption
+getPlayOption board Black (w,x) (y,z)
+    | dest   == WP                                                                     = CapturePawn        
+    | dest   == WK                                                                     = CaptureKnight    
+    | source == BP  &&  dest == E  &&   row == 0  &&  getNumKnights board Black == 2   = PlacePawn
+    | source == BP  &&  dest == E  &&   row == 0  &&  getNumKnights board Black <  2   = Upgrade2Knight
+    | otherwise                                                                        = Regular
+    where source = getFromBoard board (w,x)
+          dest   = getFromBoard board (y,z)
+          row    = z
+getPlayOption board White (w,x) (y,z)
+    | dest == BP                                                                       = CapturePawn        
+    | dest == BK                                                                       = CaptureKnight    
+    | source == WP  &&  dest == E  &&   row == 4  && getNumKnights board White == 2    = PlacePawn
+    | source == WP  &&  dest == E  &&   row == 4  && getNumKnights board White <  2    = Upgrade2Knight
+    | otherwise                                                                        = Regular
+    where source = getFromBoard board (w,x)
+          dest   = getFromBoard board (y,z)
+          row    = z
+
+
+-- | Returns 'MovesForPiece' 4-tuple that holds information about all available moves for the specified piece
+--   Takes a Board, a source coordinate and a Player
+--      The source coordinate is identified as a Piece and all valid moves for that piece are 
+populateMoveList :: Board -> (Int, Int) -> Player -> MovesForPiece
+populateMoveList board (x,y) colour
+    | source == BP      =  ( BP  ,  (x,y)  ,  getAllPlayOptions board (x,y) colour pawnMoves)
+    | source == BK      =  ( BK  ,  (x,y)  ,  getAllPlayOptions board (x,y) colour knightMoves)
+    | source == WP      =  ( WP  ,  (x,y)  ,  getAllPlayOptions board (x,y) colour pawnMoves)
+    | source == WK      =  ( WK  ,  (x,y)  ,  getAllPlayOptions board (x,y) colour knightMoves)
+    where pawnMoves   = getPawnMoves   board colour (x,y)
+          knightMoves = getKnightMoves board colour (x,y)
+          source      = getFromBoard   board (x,y)
+
+
+
+
+-- | Returns a list of tuples where each pair contains a coordinate and a 'PlayOption' for that coordinate.
+--   Takes;
+--     A Board, a source coordinate, a Player and a list of destination coordinates
+--       For each destination, it determines an associated 'PlayOption' and adds that pair to the list
+getAllPlayOptions :: Board -> (Int, Int) -> Player -> [(Int,Int)] -> [((Int,Int) , PlayOption)]
+getAllPlayOptions _      _    _       []   = []
+getAllPlayOptions board (x,y) Black (z:zs) = [(z, (getPlayOption board Black (x,y) z))] ++ getAllPlayOptions board (x,y) Black zs 
+getAllPlayOptions board (x,y) White (z:zs) = [(z, (getPlayOption board White (x,y) z))] ++ getAllPlayOptions board (x,y) White zs 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
