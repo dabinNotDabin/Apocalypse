@@ -7,8 +7,9 @@ Notes : If a player passes on a pawn placement, it's a penalty.
       : If both players reach  2 penalty points in the same round, it's a tie
       : If both players pass the same round it's a tie and the game ends
       : Rob said he isn't sure if, in the case that two pawns are to be upgraded on the same turn, the
-        output should be done in one step or two.
-      : 
+        output should be done in one step or two but we can write a script where that happens and he'll try it.
+      : With user input, a PlayType of Passed must be recieved as an empty line without a comment,
+        if the input has no leading integers ie "hey" the user should be reprompted. 
 
 
 For Main
