@@ -1,5 +1,7 @@
 # Apocalypse
 
+Notes at the end may be important for some of these TODO clauses
+
 TODO 1 and 2 are also commented out in APOC.hs where they are applicable
 
 TODO 1) check args, if zero, we step into interactive mode (pass over this section of code)
@@ -23,23 +25,10 @@ TODO 3) If not enough integers are supplied or integers are out of range, user s
 TODO 3) If the user enters say 0 0 3 3, this is a penaltied move but still valid input, don't check for move validity here
 
 
+TODO 4) For Main ============================================================
 
+Whichever function we get user input in using ...
 
-
-Notes : If a player passes on a pawn placement, it's a penalty.
-      : If a player misses a capture, it's not a penalty (unfortunately our idea won't work)
-      : If both players reach  2 penalty points in the same round, it's a tie
-      : If both players pass the same round it's a tie and the game ends
-      : Rob said he isn't sure if, in the case that two pawns are to be upgraded on the same turn, the
-        output should be done in one step or two but we can write a script where that happens and he'll try it.
-      : With user input, a PlayType of Passed must be recieved as an empty line without a comment,
-        if the input has no leading integers ie "hey" the user should be reprompted. 
-
-
-For Main
-
-Whichever function we get input in ... 
-ie;
     move1 <- blackStrategy state Normal Black
     move2 <- whiteStrategy state Normal White
     
@@ -80,5 +69,16 @@ playGame True state blackStrat whiteStrat = do
 
 just my idea that'll work well with what I already have written.
 
+
+
+
+Notes : If a player passes on a pawn placement, it's a penalty.
+      : If a player misses a capture, it's not a penalty (unfortunately our idea won't work)
+      : If both players reach  2 penalty points in the same round, it's a tie
+      : If both players pass the same round it's a tie and the game ends
+      : Rob said he isn't sure if, in the case that two pawns are to be upgraded on the same turn, the
+        output should be done in one step or two but we can write a script where that happens and he'll try it.
+      : With user input, a PlayType of Passed must be recieved as an empty line without a comment,
+        if the input has no leading integers ie "hey" the user should be reprompted. 
 
 
