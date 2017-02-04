@@ -115,6 +115,10 @@ promptUser Normal        colour = putStrLn $ "Enter the move coordinates for pla
 
 
 
+-- ========================================================================================
+-- =============================Functions That Might be Useful=============================
+-- ========================================================================================
+
 
 -- | Returns a list of coordinates (may be empty) 
 getEmptyCoordinates :: Board -> [(Int,Int)]
