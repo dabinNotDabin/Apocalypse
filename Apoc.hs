@@ -23,7 +23,15 @@ module Main (
       -- * Main
       main, main',
       -- * Utility functions
-      replace, replace2
+      replace, replace2, moveFill, swap,
+      -- * Other Util Functions
+      getPen, getOutcome, getStrategy, printStrategies, getUpgradablePawnLocation, checkForZeroPawns, checkPenalties,
+      -- * Supervisory Functions -- Control Flow of the Game
+      runStrategiesNormal,
+      -- * Move Validation
+      assessPlay, getPlay, validityTest, validityTest',
+      -- * Alteration of Game State
+      getMoveType, updateBoard, updateBoard', doUpdateClash
       ) where
 
 import Data.List
@@ -74,11 +82,13 @@ main' args = do
     let blackStrategy = getStrategy a
         whiteStrategy = getStrategy b
 
+    print initBoard
+
+    
     blackMove <- blackStrategy initBoard Normal Black
     whiteMove <- whiteStrategy initBoard Normal White
 
-    print initBoard
-
+  
     print (runStrategiesNormal initBoard blackMove whiteMove)
     
 
@@ -181,18 +191,19 @@ swap board (w,x) (y,z) =
 -- ========================================================================================
 
 
--- | Takes a Played type (Passed, Goofed, ...) and returns an integer penalty amount for that play.
+-- | Takes a 'Played' type (Passed, Goofed, ...) and returns an integer penalty amount for that play.
 getPen :: Played -> Int
 getPen (Goofed        ((_,_),(_,_))) = 1
 getPen (BadPlacedPawn ((_,_),(_,_))) = 1
+getPen  NullPlacedPawn               = 1
 getPen  _                            = 0
 
 
 
 
--- | Takes two Cells and returns an Outcome (defined in CustomTools)
---   Used to resolve clashes (two pieces move to the same cell)
---   Expects the Cell of the Black Player as the first arg, White Player as the second
+-- | Takes two 'Cell' s and returns an 'Outcome'
+--   Used to resolve 'Clash' es
+--   Expects the 'Cell' of the 'Black' 'Player' as the first arg, 'White' 'Player' as the second
 getOutcome :: Cell            -- ^ Black Cell
            -> Cell            -- ^ White Cell
            -> Outcome
@@ -204,7 +215,7 @@ getOutcome BP WK = Loss
 
 
 
--- | Takes a String and returns a Chooser (strategy)
+-- | Takes a String and returns a 'Chooser' (strategy)
 getStrategy :: String -> Chooser
 getStrategy strategy
     | strategy == "greedy"    = greedy
@@ -216,7 +227,7 @@ getStrategy strategy
 
 
 
-
+-- | Takes a list of tuples, 'Chooser' paired with it's 'String' name and prints the list with two spaces before each strategy separated with a new line
 printStrategies :: [(Chooser, String)] -> IO()
 printStrategies []     = putStr ""
 printStrategies (x:xs) = do
@@ -229,7 +240,7 @@ printStrategies (x:xs) = do
 
 
 
--- | Takes a Board, a Player (Black or White) and returns the coordinate (if any) that an upgradable pawn exists for that Player
+-- | Returns the coordinate (if any) that an upgradable pawn exists for the specified 'Player'
 getUpgradablePawnLocation :: Board -> Player -> (Int, Int)
 getUpgradablePawnLocation board Black     = ([(a,0) | a <- [0..4], (getFromBoard (board) (a,0)) == BP]) !! 0
 getUpgradablePawnLocation board White     = ([(a,4) | a <- [0..4], (getFromBoard (board) (a,4)) == WP]) !! 0
@@ -238,9 +249,9 @@ getUpgradablePawnLocation board White     = ([(a,4) | a <- [0..4], (getFromBoard
 
 
 
--- | Checks whether either Player has reached 0 pawns
---   If zero pawns are found, returns the winner (Black or White)
---   Returns Nothing for No Winner
+-- | Checks whether either 'Player' has reached 0 pawns
+--   If zero pawns are found, returns the winner ('Black' or 'White')
+--   Returns 'Nothing' for no winner
 checkForZeroPawns :: Board -> Maybe Player
 checkForZeroPawns board
     | ((getNumPawns board Black) == 0)    = Just White
@@ -249,7 +260,7 @@ checkForZeroPawns board
 
 
 
--- | Checks whether either Player has accumulated 2 penalty points
+-- | Checks whether the specified Player has accumulated 2 penalty points, returns true if they have
 checkPenalties :: GameState -> Player -> Bool
 checkPenalties state Black = ((blackPen state) >= 2)
 checkPenalties state White = ((whitePen state) >= 2)
@@ -269,7 +280,7 @@ checkPenalties state White = ((whitePen state) >= 2)
  
 
 -- ========================================================================================
--- =================================Higher Order Functions=================================
+-- ===================Supervisory Functions -- Used for Control of Game====================
 -- ========================================================================================
 
 
@@ -321,13 +332,13 @@ runStrategiesPawnPlacement state blackMove whiteMove =
 
 
 -- ========================================================================================
--- =====================Check Move Functions -- More In Custom Tools=======================
+-- ==========Functions Used to Validate a Move and Return it's 'Played' Type===============
 -- ========================================================================================
 
 
 
---can use let to represent getFromBoard board ....  and validityTest outcomes to clean things up
---then use gaurds instead of passing a Bool into getPlay
+
+-- | Used to determine a 'Played' Type based on the Player, PlayType, a move and the Board
 assessPlay :: Player -> PlayType -> Maybe [(Int, Int)] -> Board -> Played
 assessPlay _      Normal        Nothing board  = Passed
 assessPlay _      PawnPlacement Nothing board  = NullPlacedPawn
@@ -535,11 +546,6 @@ doUpdateClash board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
     | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     Win     = replace2 (moveFill board (w0,x0) (w1,x1) E) (y0,z0) E
     | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     Loss    = replace2 (moveFill board (y0,z0) (y1,z1) E) (w0,x0) E
     | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     Tie     = replace2 (replace2 board (w0,x0) E) (y0,z0) E
--- Need to handle (or work around) the Nothing case, this happens if a user tries to move an invalid piece and a clash occurs ie
--- Black Move = 0 0 1 2
--- White Move = 0 0 1 2
--- This is technically a clash but getOutcome returns nothing because the first move is illegal.
--- This may be worked around by avoiding attempting an update before checking the legality of the moves (probably easier)
 
 
 

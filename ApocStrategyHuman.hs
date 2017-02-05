@@ -19,12 +19,7 @@ This is merely a skeleton to get you started on creating a strategy for playing 
 Apocalypse game.  It has VERY little functionality.
 -}
 
-module ApocStrategyHuman (
-   human,
-   greedy,
-   evasive,
-   populateMoveList
-   ) where
+module ApocStrategyHuman where
 
 import ApocTools
 import CustomTools
@@ -120,7 +115,7 @@ promptUser Normal        colour = putStrLn $ "Enter the move coordinates for pla
 -- ========================================================================================
 
 
--- | Returns a list of coordinates (may be empty) 
+-- | Returns a list of coordinates that represent the empty cells on the board
 getEmptyCoordinates :: Board -> [(Int,Int)]
 getEmptyCoordinates board = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == E]
 
@@ -137,7 +132,7 @@ getKnightLocations board Black = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoar
 getKnightLocations board White = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == WK]
 
 
-
+-- | Gets a list of coordinates that represent the locations of any Pieces on the board of the specified Player
 getPieceLocations :: Board -> Player -> [(Int,Int)]
 getPieceLocations board Black = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == BK || (getFromBoard board (a,b)) == BP]
 getPieceLocations board White = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == WK || (getFromBoard board (a,b)) == WP]
@@ -145,7 +140,7 @@ getPieceLocations board White = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard
 
 
 -- | Gets a list of coordinates that represent the valid moves for a Knight (whose location is the 3rd argument)
---   Assumes the board is empty except for the knight whose location is the 1st argument
+--   Assumes the board is empty
 getKnightMoves :: Board -> Player -> (Int, Int) -> [(Int, Int)]
 getKnightMoves board Black (x,y) = 
     [(a,b) | a <- [0..4], b <- [0..4], ((getFromBoard board (a,b) == E)  ||  
@@ -176,10 +171,10 @@ getPawnMoves board White (x,y) =
 
 
 -- | Takes;
---      A List of coordinates (that may represent valid move choices for some Player)
---      A list of coordinates (that may represent opposing piece locations)
---      Returns the matching coordinates from the first two lists
---      Note: There are no restrictions on the meaning of the lists that are passed in
+--      A List of coordinates (that may represent valid move choices for some Player).
+--      A list of coordinates (that may represent opposing piece locations).
+--      Returns the matching coordinates from the first two lists.
+--      Note: There are no restrictions on the meaning of the lists that are passed in.
 getCaptureLocations :: [(Int, Int)] -> [(Int, Int)] -> Maybe [(Int, Int)]
 getCaptureLocations [] []     = Nothing
 getCaptureLocations []  _     = Nothing
@@ -255,8 +250,12 @@ getAllPlayOptions board (x,y) White (z:zs) = [(z, (getPlayOption board White (x,
 
 
 
-
-
+-- | Gets a [MovesForPiece] where each element is a 'MovesForPiece' representing the moves for each
+--     piece indicated in the list provided as the second argument.
+getAllPlaysForPlayer :: Board -> Maybe [(Int, Int)] -- ^ Expected to be a list of coordinates representing the locations of all pieces owned by the specified Player
+                     -> Player -> MoveListForPlayer -- ^ A list of all possible moves (3 - tuples) 'MovesForPiece' for the Player specified.
+getAllPlaysForPlayer _     (Just  [])  colour = []
+getAllPlaysForPlayer board (Just (x:xs)) colour = [(populateMoveList board x colour)] ++ (getAllPlaysForPlayer board (Just xs) colour)
 
 
 
