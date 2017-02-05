@@ -2,6 +2,8 @@
 
 Notes at the end may be important for some of these TODO clauses
 
+TODO 0)**** Get Apoc.hs functional enough to run in ApocCheckerMini to guage where we're at for functionality and correctness.
+
 TODO 1 and 2 are also commented out in APOC.hs where they are applicable
 
 TODO 1) check args, if zero, we step into interactive mode (pass over this section of code)
