@@ -9,7 +9,6 @@ Description : Custom Data Types and Functions
 module CustomTools (
     MoveType (BlackDodge, WhiteDodge, Clash, Swap, NoEvent),
     Outcome (Win, Loss, Tie),
-    Strategies (StrategyList),
     PlayOption (CapturePawn, CaptureKnight, Upgrade2Knight, PlacePawn, Regular),
     MovesForPiece,
     MoveListForPlayer,
@@ -19,7 +18,9 @@ module CustomTools (
     getNumKnights,
     getNumPawns,
     testBoard,
-    testBoard2
+    testBoard2,
+    testBoard3,
+    testBoard4
 ) where
 
 import ApocTools
@@ -42,24 +43,22 @@ data Outcome  = Win   -- ^ Used to indicate a Win in a Clash  -- Taken from the 
                 deriving (Eq)
 
  
-
-
-
-data PlayOption = CapturePawn
-                | CaptureKnight
-                | Upgrade2Knight
-                | PlacePawn
-                | Regular
+-- | Used to represent options the pieces may have for AI strategy implementation
+data PlayOption = CapturePawn     -- ^ Indicates that a Pawn Capture is available
+                | CaptureKnight   -- ^ Indicates that a Knight Capture is available
+                | Upgrade2Knight  -- ^ Indicates that a move to Upgrade a Pawn is available
+                | PlacePawn       -- ^ Indicates that a move to receive a  Pawn Placement turn is available
+                | Regular         -- ^ Indicatse that a Regular move is available (None of the Above)
 
 
 
 
--- Triple that contains;
---  A cell, it's coordinate, a list of tuples each containing a coordinate and it's corresponding PlayOption
---  This can be used to represent a piece on the board, it's location, and a set of moves it may make. 
+-- | Triple that contains;
+--   A cell, it's coordinate, a list of tuples each containing a coordinate and it's corresponding PlayOption
+--   This can be used to represent a piece on the board, it's location, and a set of moves it may make. 
 type MovesForPiece = (  Cell , (Int, Int) ,  [((Int, Int) , PlayOption)]  )
 
-
+-- | A list of 'MovesForPiece'
 type MoveListForPlayer = [MovesForPiece]
 
 
@@ -68,26 +67,16 @@ type MoveListForPlayer = [MovesForPiece]
 
 
 
- 
--- | Used to link strategies (Chooser type) with a String for their name.
---   Useful in printing the outcome of a round.
-data Strategies = StrategyList [(Chooser, String)]
 
-
-
-
-
-
--- | Takes the current GameState and a Player and returns either PawnPlacement or Normal to indicate
---   the expected user input for that Player, for that turn.
+-- | Takes the current 'GameState' and a 'Player' and returns either 'PawnPlacement' or 'Normal' to indicate
+--   the expected user input for that 'Player', for that turn or returns 'Nothing' if it's an upgrade round.
 determinePlayType :: GameState -> Player -> Maybe PlayType
 determinePlayType state Black  = determineBlackPlayType state
 determinePlayType state White  = determineWhitePlayType state
 
 
 -- |Helper function for determinePlayType;
--- If any square in row 0 contains a Black Pawn, PlayType is PawnPlacement, otherwise it's Normal
--- Returns Nothing if a pawn was upgraded
+-- If any square in row 0 contains a 'BlackPawn', 'PlayType' is 'PawnPlacement', otherwise it's 'Normal', or returns 'Nothing' if a pawn is to be upgraded
 determineBlackPlayType :: GameState -> Maybe PlayType
 determineBlackPlayType state
     | (length [(a,0) | a <- [0..4], (getFromBoard (theBoard state) (a,0)) == BP] > 0) &&
@@ -98,8 +87,7 @@ determineBlackPlayType state
 
 
 -- |Helper function for determinePlayType;
--- If any square in row 4 contains a White Pawn, PlayType is PawnPlacement, otherwise it's Normal
--- Returns Nothing if a pawn was upgraded
+-- If any square in row 4 contains a 'WhitePawn', 'PlayType' is 'PawnPlacement', otherwise it's 'Normal', or returns 'Nothing' if a pawn is to be upgraded
 determineWhitePlayType :: GameState -> Maybe PlayType
 determineWhitePlayType state
     | (length [(a,4) | a <- [0..4], (getFromBoard (theBoard state) (a,4)) == WP] > 0) &&
@@ -109,12 +97,12 @@ determineWhitePlayType state
     | otherwise                                                                            = Just Normal
 
 
--- | Takes a Board and a Player (Black or White) and returns the number of Knights that player has
+-- | Takes a 'Board' and a 'Player' and returns the number of Knights that player has
 getNumKnights :: Board -> Player -> Int
 getNumKnights board Black     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard board (x,y) == BK]
 getNumKnights board White     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard board (x,y) == WK]
 
--- | Takes a Board and a Player (Black or White) and returns the number of Pawns that player has
+-- | Takes a 'Board' and a 'Player' and returns the number of Pawns that player has
 getNumPawns :: Board -> Player -> Int
 getNumPawns board Black     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard board (x,y) == BP]
 getNumPawns board White     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard board (x,y) == WP]
@@ -175,7 +163,24 @@ testBoard2       = GameState Init 0 Init 0
 
 
 
+testBoard3       :: GameState
+testBoard3       = GameState Init 0 Init 0
+                  [ [WK, WP, BP, WP, WK],
+                    [WP, E , BP , E , WP],
+                    [E , E , E , E , E ],
+                    [BP, E , E , E , BP],
+                    [BK, BP, BP, BP, BK] ]
 
+
+
+
+testBoard4       :: GameState
+testBoard4       = GameState Init 0 Init 0
+                  [ [WK, WP, E, WP, WK],
+                    [WP, E , E , E , WP],
+                    [E , E , E , E , E ],
+                    [E, E , E , E , E],
+                    [E, E, E, E, E] ]
 
 
 
