@@ -9,7 +9,7 @@ Description : Custom Data Types and Functions
 module CustomTools (
     MoveType (BlackDodge, WhiteDodge, Clash, Swap, NoEvent),
     Outcome (Win, Loss, Tie),
-    PlayOption (CapturePawn, CaptureKnight, Upgrade2Knight, PlacePawn, Regular),
+    PlayOption (AttackKnight, AttackPawn, BoostPawn, EmptyCell, PlacePawn),
     MovesForPiece,
     MoveListForPlayer,
     determinePlayType,
@@ -42,21 +42,24 @@ data Outcome  = Win   -- ^ Used to indicate a Win in a Clash  -- Taken from the 
               | Tie   -- ^ Used to indicate a Tie in a Clash  -- Taken from the perspective of some Player
                 deriving (Eq)
 
- 
--- | Used to represent options the pieces may have for AI strategy implementation
-data PlayOption = CapturePawn     -- ^ Indicates that a Pawn Capture is available
-                | CaptureKnight   -- ^ Indicates that a Knight Capture is available
-                | Upgrade2Knight  -- ^ Indicates that a move to Upgrade a Pawn is available
-                | PlacePawn       -- ^ Indicates that a move to receive a  Pawn Placement turn is available
-                | Regular         -- ^ Indicatse that a Regular move is available (None of the Above)
 
+
+-- | Used to represent options the pieces may have for AI strategy implementation, in alphabetical order to facilitate use of Ord. 
+--   TakeKnight will be considered the greatest move where a FreePawn Move will be considered the least.
+data PlayOption = AttackKnight       -- ^ Indicates that a Knight Capture is available
+                | AttackPawn         -- ^ Indicates that a Pawn Capture is available
+                | BoostPawn          -- ^ Indicates that a move to Upgrade a Pawn is available
+                | EmptyCell          -- ^ Indicates that a Regular move is available (None of the Above)
+                | PlacePawn          -- ^ Indicates that a move to receive a  Pawn Placement turn is available
+                  deriving (Eq, Ord)
 
 
 
 -- | Triple that contains;
---   A cell, it's coordinate, a list of tuples each containing a coordinate and it's corresponding PlayOption
+--   A source coordinate and a list of tuples each containing a destination coordinate and it's corresponding PlayOption
 --   This can be used to represent a piece on the board, it's location, and a set of moves it may make. 
-type MovesForPiece = (  Cell , (Int, Int) ,  [((Int, Int) , PlayOption)]  )
+type MovesForPiece = ((Int, Int) ,  [((Int, Int) , PlayOption)])
+
 
 -- | A list of 'MovesForPiece'
 type MoveListForPlayer = [MovesForPiece]
@@ -131,11 +134,11 @@ instance Show Outcome where
 
 
 instance Show PlayOption where
-         show CapturePawn    = "Capture Pawn"
-         show CaptureKnight  = "Capture Knight"
-         show Upgrade2Knight = "Upgrade"
+         show AttackPawn     = "Capture Pawn"
+         show AttackKnight   = "Capture Knight"
+         show BoostPawn      = "Upgrade"
          show PlacePawn      = "Place Pawn"
-         show Regular        = "Regular"
+         show EmptyCell      = "Regular"
 
 
 
