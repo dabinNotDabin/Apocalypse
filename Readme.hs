@@ -26,8 +26,10 @@ TODO 3) will be considered a comment but I'll check with Rob
 TODO 3) If not enough integers are supplied or integers are out of range, user should be reprompted.
 TODO 3) If the user enters say 0 0 3 3, this is a penaltied move but still valid input, don't check for move validity here
 
+TODO 4) Implement an evasive strategy, where the chooser always favors a move to dodge a capture
 
-TODO 4) For Main ============================================================
+
+TODO 5) For Main ============================================================
 
 Whichever function we get user input in using ...
 
