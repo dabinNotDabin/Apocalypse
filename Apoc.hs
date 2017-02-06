@@ -82,14 +82,14 @@ main' args = do
     let blackStrategy = getStrategy a
         whiteStrategy = getStrategy b
 
-    print initBoard
+    print testBoard2
 
     
-    blackMove <- blackStrategy initBoard Normal Black
-    whiteMove <- whiteStrategy initBoard Normal White
+    blackMove <- blackStrategy testBoard2 Normal Black
+    whiteMove <- whiteStrategy testBoard2 Normal White
 
   
-    print (runStrategiesNormal initBoard blackMove whiteMove)
+    print (runStrategiesNormal testBoard2 blackMove whiteMove)
     
 
 

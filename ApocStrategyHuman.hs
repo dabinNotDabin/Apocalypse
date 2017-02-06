@@ -48,12 +48,27 @@ human state playType colour = do
 
 
 greedy    :: Chooser
-greedy state Normal colour = return (Just [(4,4),(3,2)])
+greedy state Normal colour = 
+    let playsForPlayer = getAllPlaysForPlayer (theBoard state) (Just (getPieceLocations (theBoard state) colour)) colour
+     in return (getBestofGreedyMoves (filterNothingMoves (getMoveGreedy playsForPlayer)))
+
+
+
+
+
+
+
+
+
+
+
+
+
 greedy b PawnPlacement c = return (Just [(2,2)])
 
 
 
-evasive    :: Chooser
+evasive   :: Chooser
 evasive b Normal        c = return (Just [(4,4),(3,2)])
 evasive b PawnPlacement c = return (Just [(2,2)])
 
@@ -113,23 +128,6 @@ promptUser Normal        colour = putStrLn $ "Enter the move coordinates for pla
 -- ========================================================================================
 -- =============================Functions That Might be Useful=============================
 -- ========================================================================================
-
-
--- | Returns a list of coordinates that represent the empty cells on the board
-getEmptyCoordinates :: Board -> [(Int,Int)]
-getEmptyCoordinates board = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == E]
-
-
--- | Gets a list of coordinates that represent the locations of any Pawns on the Board of the specified Player
-getPawnLocations :: Board -> Player -> [(Int,Int)]
-getPawnLocations board Black = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == BP]
-getPawnLocations board White = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == WP]
-
-
--- | Gets a list of coordinates that represent the locations of any Knights on the Board of the specified Player
-getKnightLocations :: Board -> Player -> [(Int,Int)]
-getKnightLocations board Black = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == BK]
-getKnightLocations board White = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b)) == WK]
 
 
 -- | Gets a list of coordinates that represent the locations of any Pieces on the board of the specified Player
@@ -202,37 +200,38 @@ getCaptureLocations xs ys     = Just [(a,b) | a <- [0..4], b <- [0..4], (elem (a
 -- | Doesn't validate moves, assumes the move to be valid for the piece at the source coordinate
 getPlayOption :: Board -> Player -> (Int, Int) -> (Int, Int) -> PlayOption
 getPlayOption board Black (w,x) (y,z)
-    | dest   == WP                                                                     = CapturePawn        
-    | dest   == WK                                                                     = CaptureKnight    
+    | dest   == WP                                                                     = AttackPawn      
+    | dest   == WK                                                                     = AttackKnight    
     | source == BP  &&  dest == E  &&   row == 0  &&  getNumKnights board Black == 2   = PlacePawn
-    | source == BP  &&  dest == E  &&   row == 0  &&  getNumKnights board Black <  2   = Upgrade2Knight
-    | otherwise                                                                        = Regular
+    | source == BP  &&  dest == E  &&   row == 0  &&  getNumKnights board Black <  2   = BoostPawn
+    | otherwise                                                                        = EmptyCell
     where source = getFromBoard board (w,x)
           dest   = getFromBoard board (y,z)
           row    = z
 getPlayOption board White (w,x) (y,z)
-    | dest == BP                                                                       = CapturePawn        
-    | dest == BK                                                                       = CaptureKnight    
+    | dest == BP                                                                       = AttackPawn        
+    | dest == BK                                                                       = AttackKnight    
     | source == WP  &&  dest == E  &&   row == 4  && getNumKnights board White == 2    = PlacePawn
-    | source == WP  &&  dest == E  &&   row == 4  && getNumKnights board White <  2    = Upgrade2Knight
-    | otherwise                                                                        = Regular
+    | source == WP  &&  dest == E  &&   row == 4  && getNumKnights board White <  2    = BoostPawn
+    | otherwise                                                                        = EmptyCell
     where source = getFromBoard board (w,x)
           dest   = getFromBoard board (y,z)
           row    = z
 
 
--- | Returns 'MovesForPiece' 4-tuple that holds information about all available moves for the specified piece
+
+
+-- | Returns a 'MovesForPiece' tuple that holds information about all available moves for the specified piece
 --   Takes a Board, a source coordinate and a Player
 --      The source coordinate is identified as a Piece and all valid moves for that piece are 
 populateMoveList :: Board -> (Int, Int) -> Player -> MovesForPiece
 populateMoveList board (x,y) colour
-    | source == BP      =  ( BP  ,  (x,y)  ,  getAllPlayOptions board (x,y) colour pawnMoves)
-    | source == BK      =  ( BK  ,  (x,y)  ,  getAllPlayOptions board (x,y) colour knightMoves)
-    | source == WP      =  ( WP  ,  (x,y)  ,  getAllPlayOptions board (x,y) colour pawnMoves)
-    | source == WK      =  ( WK  ,  (x,y)  ,  getAllPlayOptions board (x,y) colour knightMoves)
+    | source == BP  || source == WP    =  ((x,y)  ,  getAllPlayOptions board (x,y) colour pawnMoves)
+    | source == BK  || source == WK    =  ((x,y)  ,  getAllPlayOptions board (x,y) colour knightMoves)
     where pawnMoves   = getPawnMoves   board colour (x,y)
           knightMoves = getKnightMoves board colour (x,y)
           source      = getFromBoard   board (x,y)
+
 
 
 
@@ -250,10 +249,10 @@ getAllPlayOptions board (x,y) White (z:zs) = [(z, (getPlayOption board White (x,
 
 
 
--- | Gets a [MovesForPiece] where each element is a 'MovesForPiece' representing the moves for each
+-- | Gets a [MovesForPiece] where each element is a 'MovesForPiece' representing the moves available for each
 --     piece indicated in the list provided as the second argument.
 getAllPlaysForPlayer :: Board -> Maybe [(Int, Int)] -- ^ Expected to be a list of coordinates representing the locations of all pieces owned by the specified Player
-                     -> Player -> MoveListForPlayer -- ^ A list of all possible moves (3 - tuples) 'MovesForPiece' for the Player specified.
+                     -> Player -> MoveListForPlayer -- ^ A list of all possible moves (tuples) 'MovesForPiece' for the Player specified.
 getAllPlaysForPlayer _     (Just  [])  colour = []
 getAllPlaysForPlayer board (Just (x:xs)) colour = [(populateMoveList board x colour)] ++ (getAllPlaysForPlayer board (Just xs) colour)
 
@@ -263,29 +262,67 @@ getAllPlaysForPlayer board (Just (x:xs)) colour = [(populateMoveList board x col
 
 
 
+getMoveGreedy' :: MovesForPiece -> Maybe ((Int,Int) , (Int,Int) , PlayOption)
+getMoveGreedy' (src, [])           = Nothing              
+getMoveGreedy' (src, zs)           = let bestOption = getPiecesBestOption zs
+                                      in Just (src,  (fst bestOption) , (snd bestOption))  
+  
+
+
+getPiecesBestOption :: [((Int, Int), PlayOption)] -> ((Int, Int), PlayOption)
+getPiecesBestOption (z:[])             = z 
+getPiecesBestOption  zs                = getBestOptionFromList zs  (minimum (map snd zs))
+
+
+
+getBestOptionFromList :: [((Int, Int), PlayOption)] -> PlayOption -> ((Int, Int), PlayOption)
+getBestOptionFromList (x:xs) option 
+    | snd x == option           = x
+    | otherwise                 = getBestOptionFromList xs option
+
+
+
+
+getMoveGreedy :: MoveListForPlayer -> [Maybe ((Int,Int) , (Int,Int) , PlayOption)]
+getMoveGreedy  []               = []
+getMoveGreedy (x:xs)            = [getMoveGreedy' x] ++ getMoveGreedy xs
 
 
 
 
 
 
+getBestofGreedyMoves :: [((Int,Int) , (Int,Int) , PlayOption)] -> Maybe [(Int,Int)]
+getBestofGreedyMoves  []                        = Nothing
+getBestofGreedyMoves [(x,y,z)]                  = Just [x,y]
+getBestofGreedyMoves  zs                  
+    = Just [source , dest] 
+      where source = [ src | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs), x == minimum (map thrd zs), elem (src, dst, x) zs ] !! 0
+            dest   = [ dst | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs), x == minimum (map thrd zs), elem (src, dst, x) zs ] !! 0
+
+
+
+
+filterNothingMoves :: [Maybe ((Int,Int) , (Int,Int) , PlayOption) ] -> [((Int,Int) , (Int,Int) , PlayOption)]
+filterNothingMoves  []             = []
+filterNothingMoves  [Just x]       = [x]
+filterNothingMoves  ((Just x):xs)  = [x] ++ filterNothingMoves xs
 
 
 
 
 
 
+thrd :: ((Int,Int) , (Int,Int) , PlayOption) -> PlayOption
+thrd (_, _, x) = x
+
+
+first :: ((Int,Int) , (Int,Int) , PlayOption) -> (Int, Int)
+first ((a,b), _, _) = (a,b)
 
 
 
-
-
-
-
-
-
-
-
-
+second :: ((Int,Int) , (Int,Int) , PlayOption) -> (Int, Int)
+second (_, (c,d), _) = (c,d)
 
 
