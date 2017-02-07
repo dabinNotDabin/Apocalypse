@@ -7,7 +7,7 @@ TODO -1) Write test scripts to ensure our program meets the requirements.
 
 TODO 0)**** Get Apoc.hs functional enough to run in ApocCheckerMini to guage where we're at for functionality and correctness.
 
-TODO 1 and 2 are also commented out in APOC.hs where they are applicable
+TODO 1 and 2 can be found as comments in APOC.hs where they are applicable
 
 TODO 1) check args, if zero, we step into interactive mode (pass over this section of code)
 TODO 1)             if two, check that they are legal strategy names. If they are, run playGame with args
@@ -18,8 +18,8 @@ TODO 2) check strategy names(a and b), if either are illegal, print a list of st
 TODO 2)                                if both legal, run strategies against one another (interactive)
 
 
-TODO 3 is commented out in ApocStrategyHuman.hs where it needs to be done. --  Usman 
-       Rob put a zip on the website that has a solution for parsing user input
+TODO 3 can be found as a comment ApocStrategyHuman.hs where it needs to be done. --  Usman 
+       Rob put a zip on the website that has a solution for parsing user input..
        Not sure if he meant to but I can ask before anyone spends their time on this part
 
 TODO 3) if playType is Normal, parse MAX 4 integers from input
