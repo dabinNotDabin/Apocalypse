@@ -31,16 +31,8 @@ human    :: Chooser
 human state playType colour = do
     promptUser playType colour
     input <- getLine
--------------------------------------------------------------------------------------TODO 3) if playType is Normal, parse MAX 4 integers from input
--------------------------------------------------------------------------------------TODO 3) if playType is PawnPlacement, parse MAX 2 integers from input
--------------------------------------------------------------------------------------TODO 3) note that user input can contain comments so there may be more input following the move coordinates (see spec)
--------------------------------------------------------------------------------------TODO 3) check that all integers, x are such that 0 <= x <= 4 for both types of input.
--------------------------------------------------------------------------------------TODO 3) I assume that if there are more integers than required, the remaining
--------------------------------------------------------------------------------------TODO 3) will be considered a comment but I'll check with Rob
--------------------------------------------------------------------------------------TODO 3) If not enough integers are supplied or integers are out of range, user should be reprompted.
--------------------------------------------------------------------------------------TODO 3) If the user enters say 0 0 3 3, this is a penaltied move but still valid input, don't check for move validity here
 
-
+--TODO 3) Done by Rob
 
     return $ inputToCoordinates ([read [x] :: Int | x <- input, elem x ['0'..'4']])
 
@@ -79,44 +71,6 @@ evasive b PawnPlacement c = return (Just [(2,2)])
 
 
 
-
-
-
-
-
-
--- | Gets a move from the user.
--- If the move is a normal move, a list of the form [(FromX, FromY),(ToX, ToY)] is returned.
--- If the move is a pawn placement. a list of the form [(ToX, ToY)] is returned
--- If the move is a pass, Nothing is returned.
---getNormalMove :: Maybe [(x,y),(a,b)] -> [(x,y),(a,b)] 
---getNormalMove Just [(x,y),(a,b)]
-
-
-
-
--- | Arrange a list of integers into a set of coordinates. If the list is of length 4, a pair of coordinates will be returned
--- If the list is of length 2, a singleton list containing a coordinate will be returned.
--- If the list is of length 0, Nothing is returned.
--- Example, [1,2,3,4] -> [(1,2),(3,4)] ....... [1,2] -> [(1,2)] ......... [] -> Nothing
--- This function expects input checking to be done prior
-inputToCoordinates :: [Int] -> Maybe [(Int, Int)]
-inputToCoordinates [x0, y0, x1, y1]  = Just [(x0,y0),(x1,y1)]
-inputToCoordinates [x0, y0]          = Just [(x0,y0)]
-inputToCoordinates []                = Nothing
-
-
-
-
-promptUser :: PlayType -> Player -> IO()
-promptUser PawnPlacement colour = putStrLn $ "Enter the move coordinates for player " ++ show colour
-                                          ++ " in the form 'srcX srcY destX destY'"
-                                          ++ "[0 >= n >= 4, or just enter return for a 'pass'] "
-                                          ++ head (show colour) : "2:"
-promptUser Normal        colour = putStrLn $ "Enter the move coordinates for player " ++ show colour
-                                          ++ " in the form 'srcX srcY destX destY'"
-                                          ++ "[0 >= n >= 4, or just enter return for a 'pass'] "
-                                          ++ head (show colour) : "4:" 
 
 
 
