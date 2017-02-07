@@ -19,20 +19,7 @@ TODO 2) check strategy names(a and b), if either are illegal, print a list of st
 TODO 2)                                if both legal, run strategies against one another (interactive)
 
 
-TODO 3 can be found as a comment ApocStrategyHuman.hs where it needs to be done. --  Usman 
-       Rob put a zip on the website that has a solution for parsing user input..
-       Not sure if he meant to but I can ask before anyone spends their time on this part
-
-TODO 3) if playType is Normal, parse MAX 4 integers from input
-TODO 3) if playType is PawnPlacement, parse MAX 2 integers from input
-TODO 3) note that user input can contain comments so there may be more input following the move coordinates (see spec)
-TODO 3) check that all integers, x are such that 0 <= x <= 4 for both types of input.
-TODO 3) I assume that if there are more integers than required, the remaining
-TODO 3) will be considered a comment but I'll check with Rob
-TODO 3) If not enough integers are supplied or integers are out of range, user should be reprompted.
-TODO 3) If the user enters 0 0 3 3 for example, this is move will be penalized but still valid input that should be accepted. Panalties
-TODO 3) are not assessed here, but at some point further on.
-
+TODO 3) Rob did this one for us...
 
 
 TODO 4) Implement an evasive strategy, where the chooser always favors a move to dodge a capture -- Graham 
