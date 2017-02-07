@@ -19,7 +19,8 @@ TODO 2) check strategy names(a and b), if either are illegal, print a list of st
 TODO 2)                                if both legal, run strategies against one another (interactive)
 
 
-TODO 3) Rob did this one for us...
+TODO 3) Rob did this one for us... according to the spec the prompts should end in "B_" or "W_" 
+        where '_' is either '2' or '4', not '1' or '2' so this might be a typo in his code
 
 
 TODO 4) Implement an evasive strategy, where the chooser always favors a move to dodge a capture -- Graham 
