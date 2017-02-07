@@ -1,6 +1,7 @@
 # Apocalypse
 
 Notes at the end may be important for some of these TODO clauses
+TODO -2) Function to check (using the GameState as a parameter) whether a pawn upgrade or pawn placement is required.
 
 TODO -1) Write test scripts to ensure our program meets the requirements. 
          (See Notes at the very end of this readme for some ides to start with
@@ -68,8 +69,10 @@ playGame False state blackStrat whiteStrat
     | not pawnUpgradeRequired   = do
         let blackPlayType = determinePlayType .....
             whitePlayType = determinePlayType .....
+            (if one or both playTypes are PawnPlacement, we have to ask the choosers appropriately)
         move1 <- blackStrat state blackPlayType Black
         move2 <- whiteStrat state whitePlayType White
+        ...  check moves  ....  -> double pass is a tie, game over  
         ... execute round ....
         ... print results ....
         playGame winCondition? newState blackStrat whiteStrat
