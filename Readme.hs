@@ -2,6 +2,9 @@
 
 Notes at the end may be important for some of these TODO clauses
 
+TODO -1) Write test scripts to ensure our program meets the requirements. 
+         (See Notes at the very end of this readme for some ides to start with
+
 TODO 0)**** Get Apoc.hs functional enough to run in ApocCheckerMini to guage where we're at for functionality and correctness.
 
 TODO 1 and 2 are also commented out in APOC.hs where they are applicable
@@ -15,7 +18,9 @@ TODO 2) check strategy names(a and b), if either are illegal, print a list of st
 TODO 2)                                if both legal, run strategies against one another (interactive)
 
 
-TODO 3 is commented out in ApocStrategyHuman.hs where it needs to be done. Usman said he was thinking of attempting this one.
+TODO 3 is commented out in ApocStrategyHuman.hs where it needs to be done. --  Usman 
+       Rob put a zip on the website that has a solution for parsing user input
+       Not sure if he meant to but I can ask before anyone spends their time on this part
 
 TODO 3) if playType is Normal, parse MAX 4 integers from input
 TODO 3) if playType is PawnPlacement, parse MAX 2 integers from input
@@ -27,7 +32,9 @@ TODO 3) If not enough integers are supplied or integers are out of range, user s
 TODO 3) If the user enters 0 0 3 3 for example, this is move will be penalized but still valid input that should be accepted. Panalties
 TODO 3) are not assessed here, but at some point further on.
 
-TODO 4) Implement an evasive strategy, where the chooser always favors a move to dodge a capture
+
+
+TODO 4) Implement an evasive strategy, where the chooser always favors a move to dodge a capture -- Graham 
 
 
 TODO 5) For Main ============================================================
