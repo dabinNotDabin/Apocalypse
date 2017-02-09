@@ -12,7 +12,7 @@ TODO 1 and 2 can be found as comments in APOC.hs where they are applicable
 
 TODO 1) check args, if zero, we step into interactive mode (pass over this section of code)
 TODO 1)             if two, check that they are legal strategy names. If they are, run playGame with args
-TODO 1)                                                               If not, print list of strategy names (see util functions in Apoc.hs)
+TODO 1)                                                               If not, print list of strategy names (see util functions in Apoc.hs for function that prints strategies)
 TODO 1)                                                               see point 6) in functional requirements (spec)
  
 TODO 2) check strategy names(a and b), if either are illegal, print a list of strategy names and quit
