@@ -23,6 +23,8 @@ module ApocStrategyHuman where
 
 import ApocTools
 import CustomTools
+import System.IO.Unsafe
+import System.Random
 
 {- | This is just a placeholder for the human strategy: it always chooses to play
      (0,0) to (2,1).
@@ -47,8 +49,8 @@ greedy state Normal colour =
 
 
 
-
-
+getRand :: (int, Int) -> Int
+getRand (x,y) = unsafeIoPerform (RandomRIO (x, y))
 
 
 
