@@ -237,10 +237,11 @@ printStrategies (x:xs) = do
 
 
 
--- | Returns the coordinate (if any) that an upgradable pawn exists for the specified 'Player'
-getUpgradablePawnLocation :: Board -> Player -> (Int, Int)
-getUpgradablePawnLocation board Black     = ([(a,0) | a <- [0..4], (getFromBoard (board) (a,0)) == BP]) !! 0
-getUpgradablePawnLocation board White     = ([(a,4) | a <- [0..4], (getFromBoard (board) (a,4)) == WP]) !! 0
+-- | Returns a list of coordinates (if any) that an upgradable pawn exists for the specified 'Player'
+--   If empty list, no such pawn exists
+getUpgradablePawnLocation :: Board -> Player -> [(Int, Int)]
+getUpgradablePawnLocation board Black     = [(a,0) | a <- [0..4], (getFromBoard (board) (a,0)) == BP]
+getUpgradablePawnLocation board White     = [(a,4) | a <- [0..4], (getFromBoard (board) (a,4)) == WP]
 
 
 
@@ -360,9 +361,9 @@ assessPlay colour PawnPlacement move    board  =
 --   All other play types must be determined by examining the state of the board before a move is made or prior to this call.
 getPlay :: Bool -> Player -> Maybe [(Int, Int)] -> Board -> Played
 getPlay True  _      (Just [(x0,y0),(x1,y1)]) _     = Played ((x0,y0),(x1,y1))
-getPlay True  colour (Just [(x0,y0)])         board = PlacedPawn ((getUpgradablePawnLocation board colour),(x0,y0))
+getPlay True  colour (Just [(x0,y0)])         board = PlacedPawn (((getUpgradablePawnLocation board colour) !! 0),(x0,y0))
 getPlay False _      (Just [(x0,y0),(x1,y1)]) _     = Goofed ((x0,y0),(x1,y1))
-getPlay False colour (Just [(x0,y0)])         board = BadPlacedPawn ((getUpgradablePawnLocation board colour),(x0,y0))
+getPlay False colour (Just [(x0,y0)])         board = BadPlacedPawn (((getUpgradablePawnLocation board colour) !! 0),(x0,y0))
 
 
 
