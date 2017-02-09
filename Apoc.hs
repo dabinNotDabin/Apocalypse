@@ -237,9 +237,6 @@ printStrategies (x:xs) = do
 
 
 
-
-
-
 -- | Returns the coordinate (if any) that an upgradable pawn exists for the specified 'Player'
 getUpgradablePawnLocation :: Board -> Player -> (Int, Int)
 getUpgradablePawnLocation board Black     = ([(a,0) | a <- [0..4], (getFromBoard (board) (a,0)) == BP]) !! 0
