@@ -23,7 +23,7 @@ module Main (
       -- * Main
       main, main',
       -- * Utility functions
-      replace, replace2, moveFill, swap,
+      replace, replace2, moveAndFill, swap,
       -- * Other Util Functions
       getPen, getOutcome, getStrategy, printStrategies, getUpgradablePawnLocation, checkForZeroPawns, checkPenalties,
       -- * Supervisory Functions -- Control Flow of the Game
@@ -163,8 +163,8 @@ replace2 xs (x,y) elem = replace xs y (replace (xs !! y) x elem)
 
 
 -- | Moves the piece from the first coordinate to the second coordinate and sets the first coordinate == Cell
-moveFill :: Board -> (Int,Int) -> (Int,Int) -> Cell -> Board
-moveFill board (w,x) (y,z) cell = replace2 (replace2 board (y,z) (getFromBoard board (w,x))) (w,x) cell
+moveAndFill :: Board -> (Int,Int) -> (Int,Int) -> Cell -> Board
+moveAndFill board (w,x) (y,z) cell = replace2 (replace2 board (y,z) (getFromBoard board (w,x))) (w,x) cell
 
 
 -- | The piece in coordinate 1 and the piece in coordinate 2 are swapped
@@ -237,11 +237,13 @@ printStrategies (x:xs) = do
 
 
 
--- | Returns a list of coordinates (if any) that an upgradable pawn exists for the specified 'Player'
---   If empty list, no such pawn exists
-getUpgradablePawnLocation :: Board -> Player -> [(Int, Int)]
-getUpgradablePawnLocation board Black     = [(a,0) | a <- [0..4], (getFromBoard (board) (a,0)) == BP]
-getUpgradablePawnLocation board White     = [(a,4) | a <- [0..4], (getFromBoard (board) (a,4)) == WP]
+
+
+
+-- | Returns the coordinate (if any) that an upgradable pawn exists for the specified 'Player'
+getUpgradablePawnLocation :: Board -> Player -> (Int, Int)
+getUpgradablePawnLocation board Black     = ([(a,0) | a <- [0..4], (getFromBoard (board) (a,0)) == BP]) !! 0
+getUpgradablePawnLocation board White     = ([(a,4) | a <- [0..4], (getFromBoard (board) (a,4)) == WP]) !! 0
 
 
 
@@ -284,11 +286,11 @@ checkPenalties state White = ((whitePen state) >= 2)
 
 
 
--- | Takes two moves, assuming the first to be Black's move and the second to be White's move and executes one turn.
+-- | Takes two moves and a 'GameState', assuming the first to be Black's move and the second to be White's move and executes one 'Normal' turn.
 runStrategiesNormal :: GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> GameState
 runStrategiesNormal state blackMove whiteMove = 
-    let blackPlayed   = assessPlay Black Normal blackMove (theBoard state)
-        whitePlayed   = assessPlay White Normal whiteMove (theBoard state)
+    let blackPlayed = assessPlay Black Normal blackMove (theBoard state)
+        whitePlayed = assessPlay White Normal whiteMove (theBoard state)
      in          GameState (blackPlayed)
                            ((blackPen state) + (getPen blackPlayed))
                            (whitePlayed)
@@ -302,20 +304,45 @@ runStrategiesNormal state blackMove whiteMove =
 
 
 {--
--- | Not Done
+
+-- | Takes two moves and a 'GameState' assuming the first to be Black's move and the second to be White's move and executes one 'PawnPlacement' turn. 
+--   Both players can place pawns on the same round. If just one 'Player' is placing on a turn, pass Nothing in for the other 'Player'
+--   Can be called with Nothing for both players' moves and will execute an upgrade pawn to knight.
 runStrategiesPawnPlacement :: GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> GameState
-runStrategiesPawnPlacement state blackMove whiteMove = 
-    let blackPlayed   = assessPlay Black Normal blackMove (theBoard state)
-        whitePlayed   = assessPlay White Normal whiteMove (theBoard state)
-     in           GameState (blackPlayed)
+runStrategiesPawnPlacement state Nothing   Nothing   =
+                 GameState (getPlay True Black Nothing (theBoard state))
+                           ((blackPen state))
+                           (getPlay True Black Nothing (theBoard state))
+                           ((whitePen state)) 
+                           (updateBoard (theBoard state) None None)
+
+runStrategiesPawnPlacement state Nothing   whiteMove = 
+    let blackPlayed = None 
+        whitePlayed = assessPlay White PawnPlacement whiteMove (theBoard state)
+     in          GameState (blackPlayed)
                            ((blackPen state) + (getPen blackPlayed))
                            (whitePlayed)
                            ((whitePen state) + (getPen whitePlayed)) 
                            (updateBoard (theBoard state) blackPlayed whitePlayed)
 
+	 
+runStrategiesPawnPlacement state blackMove Nothing   = 
+    let blackPlayed = assessPlay Black PawnPlacement blackMove (theBoard state)
+        whitePlayed = None
+     in          GameState (blackPlayed)
+                           ((blackPen state) + (getPen blackPlayed))
+                           (whitePlayed)
+                           ((whitePen state) + (getPen whitePlayed)) 
+                           (updateBoard (theBoard state) blackPlayed whitePlayed)
 
-
-
+runStrategiesPawnPlacement state blackMove whiteMove = 
+    let blackPlayed   = assessPlay Black PawnPlacement blackMove (theBoard state)
+        whitePlayed   = assessPlay White PawnPlacement whiteMove (theBoard state)
+     in           GameState (blackPlayed)
+                           ((blackPen state) + (getPen blackPlayed))
+                           (whitePlayed)
+                           ((whitePen state) + (getPen whitePlayed)) 
+                           (updateBoard (theBoard state) blackPlayed whitePlayed)
 --} 
 
 
@@ -357,19 +384,22 @@ assessPlay colour PawnPlacement move    board  =
 
 
 -- | Determines the type of play that was made
---   Can be Goofed, Played, PlacedPawn, or BadPlacedPawn
---   All other play types must be determined by examining the state of the board before a move is made or prior to this call.
+--   Can be Goofed, Played, PlacedPawn, UpgradedPawn2Knight, or BadPlacedPawn
+--   Passed and NullPlacedPawn must be determined prior to or proceeding this call.
 getPlay :: Bool -> Player -> Maybe [(Int, Int)] -> Board -> Played
+getPlay True  colour  Nothing                 board = getPlay' board colour 
 getPlay True  _      (Just [(x0,y0),(x1,y1)]) _     = Played ((x0,y0),(x1,y1))
-getPlay True  colour (Just [(x0,y0)])         board = PlacedPawn (((getUpgradablePawnLocation board colour) !! 0),(x0,y0))
+getPlay True  colour (Just [(x0,y0)])         board = PlacedPawn ((getUpgradablePawnLocation board colour),(x0,y0))
 getPlay False _      (Just [(x0,y0),(x1,y1)]) _     = Goofed ((x0,y0),(x1,y1))
-getPlay False colour (Just [(x0,y0)])         board = BadPlacedPawn (((getUpgradablePawnLocation board colour) !! 0),(x0,y0))
+getPlay False colour (Just [(x0,y0)])         board = BadPlacedPawn ((getUpgradablePawnLocation board colour),(x0,y0))
 
 
-
-
-
-
+-- | Helper function for getPlay, used when determining whether a pawn upgrade occurred.
+getPlay' :: Board -> Player -> Played
+getPlay' board colour
+    | length upgradablePawnLocation /= 0     = UpgradedPawn2Knight $ upgradablePawnLocation !! 0
+	| otherwise                              = None
+    where upgradablePawnLocation = getUpgradablePawnLocation board colour
 
 
 
@@ -489,19 +519,20 @@ getMoveType _     _     _                                                 = NoEv
 --   All other combinations are NoEvent moves and there are four possible combinations of NoEvent moves
 --      - that will affect the board and the last pattern is a catch all that does not apply changes.
 updateBoard :: Board -> Played -> Played -> Board
+updateBoard board None                        None                                    = upgradeKnight board
 
 updateBoard board (Played ((w0,x0),(w1,x1))) (Played ((y0,z0),(y1,z1)))               = 
     let moveType = getMoveType board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
      in 
         updateBoard' board moveType (Just [(w0,x0),(w1,x1)])  (Just [(y0,z0),(y1,z1)])
 
-
+		
 updateBoard board (PlacedPawn ((w0,x0),(w1,x1))) (PlacedPawn ((y0,z0),(y1,z1)))       =   
     let moveType = getMoveType board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
      in 
         updateBoard' board moveType (Just [(w0,x0),(w1,x1)])  (Just [(y0,z0),(y1,z1)])
 
-   
+  
 updateBoard board (Played ((w0,x0),(w1,x1)))        _                                 =   updateBoard' board NoEvent  (Just [(w0,x0),(w1,x1)])  Nothing
           
 updateBoard board  _                               (Played ((y0,z0),(y1,z1)))         =   updateBoard' board NoEvent   Nothing                 (Just [(y0,z0),(y1,z1)])
@@ -524,15 +555,15 @@ updateBoard' board Clash         blackMove                whiteMove             
 
 updateBoard' board Swap          (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = swap board (w0,x0) (y0,z0)
 
-updateBoard' board WhiteDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveFill board (y0,z0) (y1,z1) (getFromBoard board (w0,x0))
+updateBoard' board WhiteDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveAndFill board (y0,z0) (y1,z1) (getFromBoard board (w0,x0))
 
-updateBoard' board BlackDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveFill board (w0,x0) (w1,x1) (getFromBoard board (y0,z0))
+updateBoard' board BlackDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveAndFill board (w0,x0) (w1,x1) (getFromBoard board (y0,z0))
 
-updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveFill (moveFill board (w0,x0) (w1,x1) E) (y0,z0) (y1,z1) E
+updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveAndFill (moveAndFill board (w0,x0) (w1,x1) E) (y0,z0) (y1,z1) E
 
-updateBoard' board NoEvent        Nothing                 (Just [(y0,z0),(y1,z1)])    = moveFill board (y0,z0) (y1,z1) E
+updateBoard' board NoEvent        Nothing                 (Just [(y0,z0),(y1,z1)])    = moveAndFill board (y0,z0) (y1,z1) E
 
-updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) Nothing                     = moveFill board (w0,x0) (w1,x1) E 
+updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) Nothing                     = moveAndFill board (w0,x0) (w1,x1) E 
 
 
 
@@ -541,10 +572,10 @@ updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) Nothing               
 
 doUpdateClash :: Board -> Maybe [(Int, Int)] -> Maybe [(Int, Int)] -> Board
 doUpdateClash board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
-    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     Win     = replace2 (moveFill board (w0,x0) (w1,x1) E) (y0,z0) E
-    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     Loss    = replace2 (moveFill board (y0,z0) (y1,z1) E) (w0,x0) E
-    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     Tie     = replace2 (replace2 board (w0,x0) E) (y0,z0) E
-
+    | outcome  ==  Win     = replace2 (moveAndFill board (w0,x0) (w1,x1) E) (y0,z0) E
+    | outcome  ==  Loss    = replace2 (moveAndFill board (y0,z0) (y1,z1) E) (w0,x0) E
+    | outcome  ==  Tie     = replace2 (replace2 board (w0,x0) E) (y0,z0) E
+    where outcome = (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))
 
 
 

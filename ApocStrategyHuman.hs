@@ -23,20 +23,18 @@ module ApocStrategyHuman where
 
 import ApocTools
 import CustomTools
-import System.IO.Unsafe
-import System.Random
 
 {- | This is just a placeholder for the human strategy: it always chooses to play
      (0,0) to (2,1).
 -}
 human    :: Chooser
 human state playType colour = do
-    promptUser playType colour
-    input <- getLine
+--    promptUser playType colour
+--    input <- getLine
 
 --TODO 3) Done by Rob
 
-    return $ inputToCoordinates ([read [x] :: Int | x <- input, elem x ['0'..'4']])
+    return (Just [(4,4),(3,2)])
 
 
 
@@ -49,8 +47,8 @@ greedy state Normal colour =
 
 
 
-getRand :: (int, Int) -> Int
-getRand (x,y) = unsafeIoPerform (RandomRIO (x, y))
+
+
 
 
 
