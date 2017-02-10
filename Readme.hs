@@ -2,6 +2,7 @@
 
 Notes at the end may be important for some of these TODO clauses
 
+TODO -4) Function checkForWin :: GameState -> Bool that checks fora  winCondition (penalties == 2 or pawns == 0)
 
 TODO -3) Function called upgrade2Knight :: Board -> Board which finds one pawn to upgrade and exchanges it with a knight
          using the util function replace2. ** It may have to upgrade both (if more than one) in one round rather than one
