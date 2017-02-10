@@ -54,6 +54,9 @@ type MoveListForPlayer = [MovesForPiece]
 
 
 
+pawnUpgradeRequired :: Maybe PlayType -> Bool
+pawnUpgradeRequired Nothing = True
+pawnUpgradeRequired _       = False
 
 
 -- | Takes the current 'GameState' and a 'Player' and returns either 'PawnPlacement' or 'Normal' to indicate
@@ -83,6 +86,8 @@ determineWhitePlayType state
     | (length [(a,0) | a <- [0..4], (getFromBoard (theBoard state) (a,4)) == WP] > 0) &&
                                      getNumKnights (theBoard state) White < 2              = Nothing
     | otherwise                                                                            = Just Normal
+
+
 
 
 -- | Takes a 'Board' and a 'Player' and returns the number of Knights that player has
