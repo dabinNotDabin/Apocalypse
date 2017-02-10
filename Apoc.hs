@@ -23,7 +23,7 @@ module Main (
       -- * Main
       main, main',
       -- * Utility functions
-      replace, replace2, moveAndFill, swap,
+      replace, replace2, moveFill, swap,
       -- * Other Util Functions
       getPen, getOutcome, getStrategy, printStrategies, getUpgradablePawnLocation, checkForZeroPawns, checkPenalties,
       -- * Supervisory Functions -- Control Flow of the Game
@@ -36,8 +36,10 @@ module Main (
 
 import Data.List
 import Data.Maybe (fromJust, isNothing)
+import Data.String
 import System.Environment
 import System.IO.Unsafe
+import System.Exit
 import ApocTools
 import ApocStrategyHuman
 import CustomTools
@@ -60,17 +62,12 @@ main' args = do
 -------------------------------------------------------------------------------------TODO 1)             if two, check that they are legal strategy names. If they are, run playGame with args
 -------------------------------------------------------------------------------------TODO 1)                                                               If not, do print list of strategy names
 -------------------------------------------------------------------------------------TODO 1)                                                               see point 6) in functional requirements (spec)
- 
 
-    let strategies = [(human, "human"),(greedy, "greedy"),(evasive, "evasive")] 
+    (a, b, isNotInteractive) <- interpretArgs args
+    checkmode a b isNotInteractive
 
-    putStrLn "  greedy"
-    putStrLn "  evasive"
-    putStrLn "  human"
-    putStrLn "\nChoose a strategy for Black yo"
-    a <- getLine
-    putStrLn "\nChoose a strategy for White tho"
-    b <- getLine
+
+
     
             
 -------------------------------------------------------------------------------------TODO 2) check strategy names(a and b), if either are illegal, print a list of strategy names and quit
@@ -79,24 +76,36 @@ main' args = do
 
 
     
-    let blackStrategy = getStrategy a
-        whiteStrategy = getStrategy b
 
-    print testBoard2
 
+playGame :: Chooser -> Chooser -> Bool -> IO()
+playGame blackStrat whiteStrat isStillPlaying = do
+    print initBoard
+    blackMove <- blackStrat initBoard Normal Black
+    whiteMove <- whiteStrat initBoard Normal White
+    print (runStrategiesNormal initBoard blackMove whiteMove)
     
-    blackMove <- blackStrategy testBoard2 Normal Black
-    whiteMove <- whiteStrategy testBoard2 Normal White
+checkmode :: Chooser -> Chooser -> Bool -> IO()
+checkmode blackStrat whiteStrat isNotInteractive =
+    if isNotInteractive == False
+        then    let strategies = [(human, "human"),(greedy, "greedy"),(evasive, "evasive")];
+                in interactiveMode
+       else
+           let strategies = [(human, "human"),(greedy, "greedy"),(evasive, "evasive")];
+               in playGame blackStrat whiteStrat True
 
-  
-    print (runStrategiesNormal testBoard2 blackMove whiteMove)
-    
-
-
-
-
-
-
+interactiveMode :: IO()
+interactiveMode = do
+    putStrLn "  greedy"
+    putStrLn "  evasive"
+    putStrLn "  human"
+    putStrLn "\nChoose a strategy for Black yo"
+    a <- getLine
+    putStrLn "\nChoose a strategy for White tho"
+    b <- getLine
+    let blackStrat = getStrategy a
+        whiteStrat = getStrategy b
+    playGame blackStrat whiteStrat True
 
 
 
@@ -105,7 +114,7 @@ main' args = do
 
 doTurn :: GameState -> Chooser -> Chooser -> GameState
 doTurn state blackStrategy whiteStrategy =
-    let blackPlayType = determinePlayType state Black 
+    let blackPlayType = determinePlayType state Black
         whitePlayType = determinePlayType state White
      in 
             | (blackPlayType == Passed) && (whitePlayType == Passed) =  getdoublePassWinner state
@@ -163,8 +172,8 @@ replace2 xs (x,y) elem = replace xs y (replace (xs !! y) x elem)
 
 
 -- | Moves the piece from the first coordinate to the second coordinate and sets the first coordinate == Cell
-moveAndFill :: Board -> (Int,Int) -> (Int,Int) -> Cell -> Board
-moveAndFill board (w,x) (y,z) cell = replace2 (replace2 board (y,z) (getFromBoard board (w,x))) (w,x) cell
+moveFill :: Board -> (Int,Int) -> (Int,Int) -> Cell -> Board
+moveFill board (w,x) (y,z) cell = replace2 (replace2 board (y,z) (getFromBoard board (w,x))) (w,x) cell
 
 
 -- | The piece in coordinate 1 and the piece in coordinate 2 are swapped
@@ -240,11 +249,10 @@ printStrategies (x:xs) = do
 
 
 
--- | Returns the coordinate (if any) in a singleton list that an upgradable pawn exists for the specified 'Player'
---   Length can be zero -- indicates no such pawn exists
-getUpgradablePawnLocation :: Board -> Player -> [(Int, Int)]
-getUpgradablePawnLocation board Black     = [(a,0) | a <- [0..4], (getFromBoard (board) (a,0)) == BP]
-getUpgradablePawnLocation board White     = [(a,4) | a <- [0..4], (getFromBoard (board) (a,4)) == WP]
+-- | Returns the coordinate (if any) that an upgradable pawn exists for the specified 'Player'
+getUpgradablePawnLocation :: Board -> Player -> (Int, Int)
+getUpgradablePawnLocation board Black     = ([(a,0) | a <- [0..4], (getFromBoard (board) (a,0)) == BP]) !! 0
+getUpgradablePawnLocation board White     = ([(a,4) | a <- [0..4], (getFromBoard (board) (a,4)) == WP]) !! 0
 
 
 
@@ -287,11 +295,11 @@ checkPenalties state White = ((whitePen state) >= 2)
 
 
 
--- | Takes two moves and a 'GameState', assuming the first to be Black's move and the second to be White's move and executes one 'Normal' turn.
+-- | Takes two moves, assuming the first to be Black's move and the second to be White's move and executes one turn.
 runStrategiesNormal :: GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> GameState
 runStrategiesNormal state blackMove whiteMove = 
-    let blackPlayed = assessPlay Black Normal blackMove (theBoard state)
-        whitePlayed = assessPlay White Normal whiteMove (theBoard state)
+    let blackPlayed   = assessPlay Black Normal blackMove (theBoard state)
+        whitePlayed   = assessPlay White Normal whiteMove (theBoard state)
      in          GameState (blackPlayed)
                            ((blackPen state) + (getPen blackPlayed))
                            (whitePlayed)
@@ -305,45 +313,20 @@ runStrategiesNormal state blackMove whiteMove =
 
 
 {--
-
--- | Takes two moves and a 'GameState' assuming the first to be Black's move and the second to be White's move and executes one 'PawnPlacement' turn. 
---   Both players can place pawns on the same round. If just one 'Player' is placing on a turn, pass Nothing in for the other 'Player'
---   Can be called with Nothing for both players' moves and will execute an upgrade pawn to knight.
+-- | Not Done
 runStrategiesPawnPlacement :: GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> GameState
-runStrategiesPawnPlacement state Nothing   Nothing   =
-                 GameState (getPlay True Black Nothing (theBoard state))
-                           ((blackPen state))
-                           (getPlay True Black Nothing (theBoard state))
-                           ((whitePen state)) 
-                           (updateBoard (theBoard state) None None)
-
-runStrategiesPawnPlacement state Nothing   whiteMove = 
-    let blackPlayed = None 
-        whitePlayed = assessPlay White PawnPlacement whiteMove (theBoard state)
-     in          GameState (blackPlayed)
-                           ((blackPen state) + (getPen blackPlayed))
-                           (whitePlayed)
-                           ((whitePen state) + (getPen whitePlayed)) 
-                           (updateBoard (theBoard state) blackPlayed whitePlayed)
-
-	 
-runStrategiesPawnPlacement state blackMove Nothing   = 
-    let blackPlayed = assessPlay Black PawnPlacement blackMove (theBoard state)
-        whitePlayed = None
-     in          GameState (blackPlayed)
-                           ((blackPen state) + (getPen blackPlayed))
-                           (whitePlayed)
-                           ((whitePen state) + (getPen whitePlayed)) 
-                           (updateBoard (theBoard state) blackPlayed whitePlayed)
-
 runStrategiesPawnPlacement state blackMove whiteMove = 
-    let blackPlayed   = assessPlay Black PawnPlacement blackMove (theBoard state)
-        whitePlayed   = assessPlay White PawnPlacement whiteMove (theBoard state)
+    let blackPlayed   = assessPlay Black Normal blackMove (theBoard state)
+        whitePlayed   = assessPlay White Normal whiteMove (theBoard state)
      in           GameState (blackPlayed)
                            ((blackPen state) + (getPen blackPlayed))
                            (whitePlayed)
                            ((whitePen state) + (getPen whitePlayed)) 
                            (updateBoard (theBoard state) blackPlayed whitePlayed)
+
+
+
+
 --} 
 
 
@@ -385,22 +368,19 @@ assessPlay colour PawnPlacement move    board  =
 
 
 -- | Determines the type of play that was made
---   Can be Goofed, Played, PlacedPawn, UpgradedPawn2Knight, or BadPlacedPawn
---   Passed and NullPlacedPawn must be determined prior to or proceeding this call.
+--   Can be Goofed, Played, PlacedPawn, or BadPlacedPawn
+--   All other play types must be determined by examining the state of the board before a move is made or prior to this call.
 getPlay :: Bool -> Player -> Maybe [(Int, Int)] -> Board -> Played
-getPlay True  colour  Nothing                 board = getPlay' board colour 
 getPlay True  _      (Just [(x0,y0),(x1,y1)]) _     = Played ((x0,y0),(x1,y1))
 getPlay True  colour (Just [(x0,y0)])         board = PlacedPawn ((getUpgradablePawnLocation board colour),(x0,y0))
 getPlay False _      (Just [(x0,y0),(x1,y1)]) _     = Goofed ((x0,y0),(x1,y1))
 getPlay False colour (Just [(x0,y0)])         board = BadPlacedPawn ((getUpgradablePawnLocation board colour),(x0,y0))
 
 
--- | Helper function for getPlay, used when determining whether a pawn upgrade occurred.
-getPlay' :: Board -> Player -> Played
-getPlay' board colour
-    | length upgradablePawnLocation /= 0     = UpgradedPawn2Knight $ upgradablePawnLocation !! 0
-	| otherwise                              = None
-    where upgradablePawnLocation = getUpgradablePawnLocation board colour
+
+
+
+
 
 
 
@@ -520,20 +500,19 @@ getMoveType _     _     _                                                 = NoEv
 --   All other combinations are NoEvent moves and there are four possible combinations of NoEvent moves
 --      - that will affect the board and the last pattern is a catch all that does not apply changes.
 updateBoard :: Board -> Played -> Played -> Board
-updateBoard board None                        None                                    = upgradeKnight board
 
 updateBoard board (Played ((w0,x0),(w1,x1))) (Played ((y0,z0),(y1,z1)))               = 
     let moveType = getMoveType board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
      in 
         updateBoard' board moveType (Just [(w0,x0),(w1,x1)])  (Just [(y0,z0),(y1,z1)])
 
-		
+
 updateBoard board (PlacedPawn ((w0,x0),(w1,x1))) (PlacedPawn ((y0,z0),(y1,z1)))       =   
     let moveType = getMoveType board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
      in 
         updateBoard' board moveType (Just [(w0,x0),(w1,x1)])  (Just [(y0,z0),(y1,z1)])
 
-  
+   
 updateBoard board (Played ((w0,x0),(w1,x1)))        _                                 =   updateBoard' board NoEvent  (Just [(w0,x0),(w1,x1)])  Nothing
           
 updateBoard board  _                               (Played ((y0,z0),(y1,z1)))         =   updateBoard' board NoEvent   Nothing                 (Just [(y0,z0),(y1,z1)])
@@ -556,15 +535,15 @@ updateBoard' board Clash         blackMove                whiteMove             
 
 updateBoard' board Swap          (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = swap board (w0,x0) (y0,z0)
 
-updateBoard' board WhiteDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveAndFill board (y0,z0) (y1,z1) (getFromBoard board (w0,x0))
+updateBoard' board WhiteDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveFill board (y0,z0) (y1,z1) (getFromBoard board (w0,x0))
 
-updateBoard' board BlackDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveAndFill board (w0,x0) (w1,x1) (getFromBoard board (y0,z0))
+updateBoard' board BlackDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveFill board (w0,x0) (w1,x1) (getFromBoard board (y0,z0))
 
-updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveAndFill (moveAndFill board (w0,x0) (w1,x1) E) (y0,z0) (y1,z1) E
+updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveFill (moveFill board (w0,x0) (w1,x1) E) (y0,z0) (y1,z1) E
 
-updateBoard' board NoEvent        Nothing                 (Just [(y0,z0),(y1,z1)])    = moveAndFill board (y0,z0) (y1,z1) E
+updateBoard' board NoEvent        Nothing                 (Just [(y0,z0),(y1,z1)])    = moveFill board (y0,z0) (y1,z1) E
 
-updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) Nothing                     = moveAndFill board (w0,x0) (w1,x1) E 
+updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) Nothing                     = moveFill board (w0,x0) (w1,x1) E 
 
 
 
@@ -573,13 +552,40 @@ updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) Nothing               
 
 doUpdateClash :: Board -> Maybe [(Int, Int)] -> Maybe [(Int, Int)] -> Board
 doUpdateClash board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
-    | outcome  ==  Win     = replace2 (moveAndFill board (w0,x0) (w1,x1) E) (y0,z0) E
-    | outcome  ==  Loss    = replace2 (moveAndFill board (y0,z0) (y1,z1) E) (w0,x0) E
-    | outcome  ==  Tie     = replace2 (replace2 board (w0,x0) E) (y0,z0) E
-    where outcome = (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))
+    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     Win     = replace2 (moveFill board (w0,x0) (w1,x1) E) (y0,z0) E
+    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     Loss    = replace2 (moveFill board (y0,z0) (y1,z1) E) (w0,x0) E
+    | (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))      ==     Tie     = replace2 (replace2 board (w0,x0) E) (y0,z0) E
 
 
+{- | Return True only if we find "-v" among the command-line arguments.  If the command
+line is empty, then return False.  If the commmand-line is not empty and doesn't
+contain -v, then print a synopsis and exit.
+-}
+interpretArgs :: [String] -> IO (Chooser, Chooser, Bool)
+interpretArgs args | (args == []) = do return (human, human, False)
+                   | ((head args) == "human") && (elem "human" (tail args))  && (length args == 2) = do return (human, human, True)
+                   | ((head args) == "human") && (elem "greedy" (tail args))  && (length args == 2) = do return (human, greedy, True)
+                   | ((head args) == "human") && (elem "evasive" (tail args))  && (length args == 2) = do return (human, evasive, True)
+                   | ((head args) == "greedy") && (elem "human" (tail args))  && (length args == 2) = do return (greedy, human, True)
+                   | ((head args) == "greedy") && (elem "greedy" (tail args))  && (length args == 2) = do return (greedy, greedy, True)
+                   | ((head args) == "greedy") && (elem "evasive" (tail args))  && (length args == 2) = do return (greedy, evasive, True)
+                   | ((head args) == "evasive") && (elem "human" (tail args))  && (length args == 2) = do return (evasive, human, True)
+                   | ((head args) == "evasive") && (elem "greedy" (tail args))  && (length args == 2) = do return (evasive, greedy, True)
+                   | ((head args) == "evasive") && (elem "evasive" (tail args))  && (length args == 2) = do return (evasive, evasive, True)
+                   | True = do printSynopsis; exitSuccess; return (human, human, False)
 
+{- | Print a synopsis of the program.
+-}
+printSynopsis :: IO ()
+printSynopsis = do
+name <- getProgName
+putStrLn "\nUsage:"
+putStrLn $ "  " ++ name ++ "\n"
+putStrLn "Usage: 1st arg = (human, greedy, evasive), 2nd arg = (human, greedy, evasive)"
+putStrLn "The first argument chooses a strategy for black, and the second argument chooses a strategy for white."
+putStrLn "If you decide to choose a strategy for black, you must also choose a strategy for white."
+putStrLn "Anything else on the command line causes this message to be printed and"
+putStrLn "the program will exit.\n"
 
 
 
