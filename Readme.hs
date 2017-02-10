@@ -2,6 +2,11 @@
 
 Notes at the end may be important for some of these TODO clauses
 
+TODO -6) Finish playGame (the one that's commented out) in Apoc.hs. I added to the old one quite a bit but left 
+         it there so everything would still compile until we get the newer one finished.
+
+TODO -5) Finish Function doWinResults in Apoc.hs -- it needs some supplemental functions to work properly.
+
 TODO -4) Function checkForWin :: GameState -> Bool that checks fora  winCondition (penalties == 2 or pawns == 0)
 
 TODO -3) Function called upgrade2Knight :: Board -> Board which finds one pawn to upgrade and exchanges it with a knight
