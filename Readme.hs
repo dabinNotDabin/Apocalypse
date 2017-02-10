@@ -41,39 +41,7 @@ TODO 3) Rob did this one for us... according to the spec the prompts should end 
 TODO 4) Implement an evasive strategy, where the chooser always favors a move to dodge a capture -- Graham 
 
 
-TODO 5) For Main ============================================================
-
-Whichever function we get user input in using ...
-
-    move1 <- blackStrategy state Normal Black
-    move2 <- whiteStrategy state Normal White
-    
-... must have an IO (...) return type, can be IO GameState, IO(), etc.
-This is because the operator <- must be within a do block
-
-We can create a playGame function that is like our highest order function but it has to return some IO type.
-If it takes two chooser types, it can get the moves from the strategies as shown above
-where the game always starts with;
-  state    ==   initBoard and 
-  PlayType ==   Normal (for both players)
- 
-
-   -- we can have it print all results as it goes, calling itself recursively (if no win state detected)
-   -- on finding a win state, it can print out the results of the match satisfying the IO() return type
-   
-
-    
-pla... psults ....
-        playGame winCondition? newState blackStrat whiteStrat   -- if a Player upgrades their last pawn, the other Player wins
-    | not pawnUpgradeRequired   = do
-        let blackPlayType = determinePlayType .....
-            whitePlayType = determinePlayType .....
-            move1 <- blackStrat state blackPlayType Black
-        move2 <- whiteStrat state whitePlayType White
-        ...  check moves  ....  -> double pass is a tie, game over  
-         print results ....
-        playGame winCondition? newState blackStrat whiteStrat
-    Notes : If a player passes on a pawn placement, it's a penalty.
+        Notes : If a player passes on a pawn placement, it's a penalty.
       : If a player misses a capture, it's not a penalty (unfortunately our idea won't work)
       : If both players reach  2 penalty points in the same round, it's a tie
       : If both players pass the same round it's a tie and the game ends
