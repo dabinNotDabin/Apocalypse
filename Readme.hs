@@ -1,7 +1,9 @@
 # Apocalypse
 
 Notes at the end may be important for some of these TODO clauses
-TODO -3) Function called upgradeKnight :: Board -> Board which finds one pawn to upgrade and exchanges it with a knight
+
+
+TODO -3) Function called upgrade2Knight :: Board -> Board which finds one pawn to upgrade and exchanges it with a knight
          using the util function replace2. ** It may have to upgrade both (if more than one) in one round rather than one
          at a time. I asked Rob and he said he's not sure but if we work on TODO -2.5)
          
