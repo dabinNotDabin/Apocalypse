@@ -58,41 +58,52 @@ main = main' (unsafePerformIO getArgs)
 -}
 main'           :: [String] -> IO()
 main' args = do
--------------------------------------------------------------------------------------TODO 1) check args, if zero, we step into interactive mode (pass over this section of code)
--------------------------------------------------------------------------------------TODO 1)             if two, check that they are legal strategy names. If they are, run playGame with args
--------------------------------------------------------------------------------------TODO 1)                                                               If not, do print list of strategy names
--------------------------------------------------------------------------------------TODO 1)                                                               see point 6) in functional requirements (spec)
-
     (a, b, isNotInteractive) <- interpretArgs args
     checkmode a b isNotInteractive
 
-
-
-    
-            
--------------------------------------------------------------------------------------TODO 2) check strategy names(a and b), if either are illegal, print a list of strategy names and quit
--------------------------------------------------------------------------------------TODO 2)                                if both legal, run strategies against one another (interactive)
-
-
-
     
 
+playGame :: GameState -> Chooser -> Chooser -> Bool -> IO()
+playGame state blackStrat whiteStrat isStillPlaying = do
+    print state
+    blackMove <- blackStrat state Normal Black
+    whiteMove <- whiteStrat state Normal White
+    print (runStrategiesNormal state blackMove whiteMove)
 
-playGame :: Chooser -> Chooser -> Bool -> IO()
-playGame blackStrat whiteStrat isStillPlaying = do
-    print initBoard
-    blackMove <- blackStrat initBoard Normal Black
-    whiteMove <- whiteStrat initBoard Normal White
-    print (runStrategiesNormal initBoard blackMove whiteMove)
+
+
+
+
+{-
+
+playGame :: GameState -> Chooser -> Chooser -> Bool -> IO()
+playGame False state blackStrat whiteStrat
+    | (pawnUpgradeRequired (determinePlayType state Black) == True)  ||  (pawnUpgradeRequired (determinePlayType state White) == True)    = do
+--      let newState = run upgrade  ....
+         in print newState
+            playGame newState blackStrat whiteStrat (checkForWin newState)
+    | otherwise  = 
+        let blackPlayType = determinePlayType state Black
+            whitePlayType = determinePlayType state White
+         in do newState <- roundExecute state blackPlayType whitePlayType
+               playGame newState blackStrat whiteStrat (checkForWin newState)
+
+--playGame True state blackStrat whiteStrat = do
+--  output for winning conditions satisfying IO() return type
+
+-}
+
+
+
+
     
 checkmode :: Chooser -> Chooser -> Bool -> IO()
-checkmode blackStrat whiteStrat isNotInteractive =
-    if isNotInteractive == False
-        then    let strategies = [(human, "human"),(greedy, "greedy"),(evasive, "evasive")];
-                in interactiveMode
-       else
-           let strategies = [(human, "human"),(greedy, "greedy"),(evasive, "evasive")];
-               in playGame blackStrat whiteStrat True
+checkmode blackStrat whiteStrat isNotInteractive
+    | isNotInteractive == False    = interactiveMode
+    | otherwise                    = playGame initBoard blackStrat whiteStrat True
+
+ 
+ 
 
 interactiveMode :: IO()
 interactiveMode = do
@@ -105,25 +116,7 @@ interactiveMode = do
     b <- getLine
     let blackStrat = getStrategy a
         whiteStrat = getStrategy b
-    playGame blackStrat whiteStrat True
-
-
-
-
-{--
-
-doTurn :: GameState -> Chooser -> Chooser -> GameState
-doTurn state blackStrategy whiteStrategy =
-    let blackPlayType = determinePlayType state Black 
-        whitePlayType = determinePlayType state White
-     in 
-            | (blackPlayType == Passed) && (whitePlayType == Passed) =  getdoublePassWinner state
-            | checkPenalties state Black                             =  doWin White
-            | checkPenalties state White                             =  doWin Black
--- account for both accumulate 2 penalty points in the same turn
-            | checkForWin    (theBoard state) == Nothing             =  roundSelector state (Just blackPlayType) (Just whitePlayType)
-            | checkForWin    (theBoard state) == Just Black          =  doWin Black 
-            | checkForWin    (theBoard state) == Just White          =  doWin White
+    playGame initBoard blackStrat whiteStrat True
 
 
 
@@ -131,25 +124,20 @@ doTurn state blackStrategy whiteStrategy =
 
 
 
-roundSelector :: GameState -> Maybe PlayType -> Maybe PlayType -> IO()
-roundSelector state (Just PawnPlacement) (Just PawnPlacement)   = runStrategiesPawnPlacement
-roundSelector state _                    (Just PawnPlacement)   = runStrategiesPawnPlacement
-roundSelector state (Just PawnPlacement) _                      = runStrategiesPawnPlacement
-roundSelector state (Just Normal)        (Just Normal)          = runStrategiesNormal -- only want to do this if both are normal
 
 
 
 
-
-doWin :: Board -> Player -> Chooser -> Chooser -> IO()
-doWin board Black blackStrategy whiteStrategy = do
+{-
+doWinResults :: Board -> Player -> Chooser -> Chooser -> IO()
+doWinResults board Black blackStrategy whiteStrategy = do
     putStrLn $ ("Black Wins! (" ++ (chooser2Str blackStrategy) ++ "): " ++ (read (getNumPawns board Black) :: String)
                                 ++ (chooser2Str WhiteStrategy) ++ "): " ++ (read (getNumPawns board White) :: String) 
-doWin board White blackStrategy whiteStrategy = do
+doWinResults board White blackStrategy whiteStrategy = do
     putStrLn $ ("White Wins! (" ++ (chooser2Str blackStrategy) ++ "): " ++ (read (getNumPawns board Black) :: String)
                                 ++ (chooser2Str WhiteStrategy) ++ "): " ++ (read (getNumPawns board White) :: String) 
 
---}
+-}
 
 
 
@@ -313,7 +301,7 @@ runStrategiesNormal state blackMove whiteMove =
 
 
 
-{--
+
 
 -- | Takes two moves and a 'GameState' assuming the first to be Black's move and the second to be White's move and executes one 'PawnPlacement' turn. 
 --   Both players can place pawns on the same round. If just one 'Player' is placing on a turn, pass Nothing in for the other 'Player'
@@ -335,7 +323,7 @@ runStrategiesPawnPlacement state Nothing   whiteMove =
                            ((whitePen state) + (getPen whitePlayed)) 
                            (updateBoard (theBoard state) blackPlayed whitePlayed)
 
-	 
+ 
 runStrategiesPawnPlacement state blackMove Nothing   = 
     let blackPlayed = assessPlay Black PawnPlacement blackMove (theBoard state)
         whitePlayed = None
@@ -353,10 +341,31 @@ runStrategiesPawnPlacement state blackMove whiteMove =
                            (whitePlayed)
                            ((whitePen state) + (getPen whitePlayed)) 
                            (updateBoard (theBoard state) blackPlayed whitePlayed)
---} 
 
 
 
+
+
+
+roundExecute :: GameState -> Chooser -> Maybe PlayType -> Chooser -> Maybe PlayType -> IO GameState
+    
+roundExecute state blackStrat (Just Normal)        whiteStrat (Just Normal)          = do
+    move1 <- blackStrat state PawnPlacement Black
+    move2 <- whiteStrat state PawnPlacement White
+    return (runStrategiesPawnPlacement state move1 move2)
+
+roundExecute state blackStrat (Just PawnPlacement) whiteStrat (Just PawnPlacement)   = do 
+    move1 <- blackStrat state PawnPlacement Black
+    move2 <- whiteStrat state PawnPlacement White
+    return (runStrategiesPawnPlacement state move1 move2)
+
+roundExecute state blackStrat _                    whiteStrat (Just PawnPlacement)   = do 
+    move2 <- whiteStrat state PawnPlacement White
+    return (runStrategiesPawnPlacement state Nothing move2) 
+    
+roundExecute state blackStrat (Just PawnPlacement) whiteStrat  _                     = do 
+    move1 <- blackStrat state PawnPlacement Black
+    return (runStrategiesPawnPlacement state move1 Nothing)
 
 
 
@@ -528,7 +537,7 @@ getMoveType _     _     _                                                 = NoEv
 --   All other combinations are NoEvent moves and there are four possible combinations of NoEvent moves
 --      - that will affect the board and the last pattern is a catch all that does not apply changes.
 updateBoard :: Board -> Played -> Played -> Board
---updateBoard board None                        None                                    = upgradeKnight board
+--updateBoard board None                        None                                    = upgrade2Knight board
 
 updateBoard board (Played ((w0,x0),(w1,x1))) (Played ((y0,z0),(y1,z1)))               = 
     let moveType = getMoveType board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
@@ -605,16 +614,16 @@ contain -v, then print a synopsis and exit.
 -}
 interpretArgs :: [String] -> IO (Chooser, Chooser, Bool)
 interpretArgs args | (args == []) = do return (human, human, False)
-                   | ((head args) == "human") && (elem "human" (tail args))  && (length args == 2) = do return (human, human, True)
-                   | ((head args) == "human") && (elem "greedy" (tail args))  && (length args == 2) = do return (human, greedy, True)
-                   | ((head args) == "human") && (elem "evasive" (tail args))  && (length args == 2) = do return (human, evasive, True)
-                   | ((head args) == "greedy") && (elem "human" (tail args))  && (length args == 2) = do return (greedy, human, True)
-                   | ((head args) == "greedy") && (elem "greedy" (tail args))  && (length args == 2) = do return (greedy, greedy, True)
-                   | ((head args) == "greedy") && (elem "evasive" (tail args))  && (length args == 2) = do return (greedy, evasive, True)
-                   | ((head args) == "evasive") && (elem "human" (tail args))  && (length args == 2) = do return (evasive, human, True)
-                   | ((head args) == "evasive") && (elem "greedy" (tail args))  && (length args == 2) = do return (evasive, greedy, True)
+                   | ((head args) == "human") && (elem "human" (tail args))  && (length args == 2)     = do return (human, human, True)
+                   | ((head args) == "human") && (elem "greedy" (tail args))  && (length args == 2)    = do return (human, greedy, True)
+                   | ((head args) == "human") && (elem "evasive" (tail args))  && (length args == 2)   = do return (human, evasive, True)
+                   | ((head args) == "greedy") && (elem "human" (tail args))  && (length args == 2)    = do return (greedy, human, True)
+                   | ((head args) == "greedy") && (elem "greedy" (tail args))  && (length args == 2)   = do return (greedy, greedy, True)
+                   | ((head args) == "greedy") && (elem "evasive" (tail args))  && (length args == 2)  = do return (greedy, evasive, True)
+                   | ((head args) == "evasive") && (elem "human" (tail args))  && (length args == 2)   = do return (evasive, human, True)
+                   | ((head args) == "evasive") && (elem "greedy" (tail args))  && (length args == 2)  = do return (evasive, greedy, True)
                    | ((head args) == "evasive") && (elem "evasive" (tail args))  && (length args == 2) = do return (evasive, evasive, True)
-                   | True = do printSynopsis; exitSuccess; return (human, human, False)
+                   |  otherwise                                                                        = do printSynopsis; return (human, human, False)
 
 
 
