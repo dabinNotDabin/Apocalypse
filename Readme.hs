@@ -63,34 +63,17 @@ where the game always starts with;
    
 
     
-playGame :: Bool -> GameState -> Chooser -> Chooser -> IO()
-playGame False state blackStrat whiteStrat
-    | pawnUpgradeRequired       = do
-        ...   runUpgrade  ....
-        ... print results ....
+pla... psults ....
         playGame winCondition? newState blackStrat whiteStrat   -- if a Player upgrades their last pawn, the other Player wins
     | not pawnUpgradeRequired   = do
         let blackPlayType = determinePlayType .....
             whitePlayType = determinePlayType .....
-            (if one or both playTypes are PawnPlacement, we have to ask the choosers appropriately)
-        move1 <- blackStrat state blackPlayType Black
+            move1 <- blackStrat state blackPlayType Black
         move2 <- whiteStrat state whitePlayType White
         ...  check moves  ....  -> double pass is a tie, game over  
-        ... execute round ....
-        ... print results ....
+         print results ....
         playGame winCondition? newState blackStrat whiteStrat
-    
-playGame True state blackStrat whiteStrat = do
-    do output for winning conditions satisfying IO() return type
-
-
-
-just my idea that'll work well with what I already have written.
-
-
-
-
-Notes : If a player passes on a pawn placement, it's a penalty.
+    Notes : If a player passes on a pawn placement, it's a penalty.
       : If a player misses a capture, it's not a penalty (unfortunately our idea won't work)
       : If both players reach  2 penalty points in the same round, it's a tie
       : If both players pass the same round it's a tie and the game ends
