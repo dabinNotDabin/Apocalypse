@@ -62,17 +62,12 @@ main' args = do
 -------------------------------------------------------------------------------------TODO 1)             if two, check that they are legal strategy names. If they are, run playGame with args
 -------------------------------------------------------------------------------------TODO 1)                                                               If not, do print list of strategy names
 -------------------------------------------------------------------------------------TODO 1)                                                               see point 6) in functional requirements (spec)
- 
 
-    let strategies = [(human, "human"),(greedy, "greedy"),(evasive, "evasive")] 
+    (a, b, isNotInteractive) <- interpretArgs args
+    checkmode a b isNotInteractive
 
-    putStrLn "  greedy"
-    putStrLn "  evasive"
-    putStrLn "  human"
-    putStrLn "\nChoose a strategy for Black yo"
-    a <- getLine
-    putStrLn "\nChoose a strategy for White tho"
-    b <- getLine
+
+
     
             
 -------------------------------------------------------------------------------------TODO 2) check strategy names(a and b), if either are illegal, print a list of strategy names and quit
@@ -81,24 +76,36 @@ main' args = do
 
 
     
-    let blackStrategy = getStrategy a
-        whiteStrategy = getStrategy b
 
-    print testBoard2
 
+playGame :: Chooser -> Chooser -> Bool -> IO()
+playGame blackStrat whiteStrat isStillPlaying = do
+    print initBoard
+    blackMove <- blackStrat initBoard Normal Black
+    whiteMove <- whiteStrat initBoard Normal White
+    print (runStrategiesNormal initBoard blackMove whiteMove)
     
-    blackMove <- blackStrategy testBoard2 Normal Black
-    whiteMove <- whiteStrategy testBoard2 Normal White
+checkmode :: Chooser -> Chooser -> Bool -> IO()
+checkmode blackStrat whiteStrat isNotInteractive =
+    if isNotInteractive == False
+        then    let strategies = [(human, "human"),(greedy, "greedy"),(evasive, "evasive")];
+                in interactiveMode
+       else
+           let strategies = [(human, "human"),(greedy, "greedy"),(evasive, "evasive")];
+               in playGame blackStrat whiteStrat True
 
-  
-    print (runStrategiesNormal testBoard2 blackMove whiteMove)
-    
-
-
-
-
-
-
+interactiveMode :: IO()
+interactiveMode = do
+    putStrLn "  greedy"
+    putStrLn "  evasive"
+    putStrLn "  human"
+    putStrLn "\nChoose a strategy for Black yo"
+    a <- getLine
+    putStrLn "\nChoose a strategy for White tho"
+    b <- getLine
+    let blackStrat = getStrategy a
+        whiteStrat = getStrategy b
+    playGame blackStrat whiteStrat True
 
 
 
@@ -365,7 +372,6 @@ runStrategiesPawnPlacement state blackMove whiteMove =
 
 
 
-
 -- | Used to determine a 'Played' Type based on the Player, PlayType, a move and the Board
 assessPlay :: Player -> PlayType -> Maybe [(Int, Int)] -> Board -> Played
 assessPlay _      Normal        Nothing board  = Passed
@@ -579,6 +585,52 @@ doUpdateClash board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
     | outcome  ==  Loss    = replace2 (moveAndFill board (y0,z0) (y1,z1) E) (w0,x0) E
     | outcome  ==  Tie     = replace2 (replace2 board (w0,x0) E) (y0,z0) E
     where outcome = (getOutcome (getFromBoard board (w0,x0)) (getFromBoard board (y0,z0)))
+
+
+
+
+
+
+
+
+
+-- ========================================================================================
+-- ====================================Control of Flow=====================================
+-- ========================================================================================
+
+
+{- | Return True only if we find "-v" among the command-line arguments.  If the command
+line is empty, then return False.  If the commmand-line is not empty and doesn't
+contain -v, then print a synopsis and exit.
+-}
+interpretArgs :: [String] -> IO (Chooser, Chooser, Bool)
+interpretArgs args | (args == []) = do return (human, human, False)
+                   | ((head args) == "human") && (elem "human" (tail args))  && (length args == 2) = do return (human, human, True)
+                   | ((head args) == "human") && (elem "greedy" (tail args))  && (length args == 2) = do return (human, greedy, True)
+                   | ((head args) == "human") && (elem "evasive" (tail args))  && (length args == 2) = do return (human, evasive, True)
+                   | ((head args) == "greedy") && (elem "human" (tail args))  && (length args == 2) = do return (greedy, human, True)
+                   | ((head args) == "greedy") && (elem "greedy" (tail args))  && (length args == 2) = do return (greedy, greedy, True)
+                   | ((head args) == "greedy") && (elem "evasive" (tail args))  && (length args == 2) = do return (greedy, evasive, True)
+                   | ((head args) == "evasive") && (elem "human" (tail args))  && (length args == 2) = do return (evasive, human, True)
+                   | ((head args) == "evasive") && (elem "greedy" (tail args))  && (length args == 2) = do return (evasive, greedy, True)
+                   | ((head args) == "evasive") && (elem "evasive" (tail args))  && (length args == 2) = do return (evasive, evasive, True)
+                   | True = do printSynopsis; exitSuccess; return (human, human, False)
+
+
+
+{- | Print a synopsis of the program.
+-}
+printSynopsis :: IO ()
+printSynopsis = do
+name <- getProgName
+putStrLn "\nUsage:"
+putStrLn $ "  " ++ name ++ "\n"
+putStrLn "1st arg = (human, greedy, evasive), 2nd arg = (human, greedy, evasive)"
+putStrLn "The first argument chooses a strategy for black, and the second argument chooses a strategy for white."
+putStrLn "If you decide to choose a strategy for black, you must also choose a strategy for white."
+putStrLn "You can also decide to play using the interactive mode by running the program with no arguments. "
+putStrLn "Anything else on the command line causes this message to be printed and"
+putStrLn "the program will exit.\n"
 
 
 
