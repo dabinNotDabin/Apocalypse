@@ -2,8 +2,8 @@
 
 Notes at the end may be important for some of these TODO clauses
 TODO -3) Function called upgradeKnight :: Board -> Board which finds one pawn to upgrade and exchanges it with a knight
-         using the util function replace2. ** It may have to upgrade both in one round rather than one at a time. I asked Rob
-         and he said he's not sure but if we work on TODO -2.5)
+         using the util function replace2. ** It may have to upgrade both (if more than one) in one round rather than one
+         at a time. I asked Rob and he said he's not sure but if we work on TODO -2.5)
          
 TODO-2.5) Develop a script that tests for the scenario in which both players move a pawn for an upgrade
           (both have less than two knights) that we can send to him, he'll try it on his and let me know.
