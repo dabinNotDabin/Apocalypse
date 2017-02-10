@@ -20,7 +20,8 @@ module CustomTools (
     testBoard,
     testBoard2,
     testBoard3,
-    testBoard4
+    testBoard4,
+	testBoard5
 ) where
 
 import ApocTools
@@ -189,6 +190,13 @@ testBoard4       = GameState Init 0 Init 0
 
 
 
+testBoard5       :: GameState
+testBoard5       = GameState Init 0 Init 0
+                  [ [WK, E, E, E, E],
+                    [E, E , E , E , WP],
+                    [E , WK , E , E , E ],
+                    [E, E , E , E , E],
+                    [BK, E, E, E, E] ]
 
 
 
