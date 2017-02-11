@@ -38,6 +38,7 @@ import Data.List
 import Data.Maybe (fromJust, isNothing)
 import System.Environment
 import System.IO.Unsafe
+import System.ExitSuccess
 import ApocTools
 import ApocStrategyHuman
 import ApocStrategyGreedy
