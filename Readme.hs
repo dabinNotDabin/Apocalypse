@@ -49,5 +49,41 @@ TODO 4) Implement an evasive strategy, where the chooser always favors a move to
         output should be done in one step or two but we can write a script where that happens and he'll try it.
       : With user input, a PlayType of Passed must be recieved as an empty line without a comment,
         if the input has no leading integers ie "hey" the user should be reprompted. 
+        
+        
+        
+        
+        
+        
+        
+        
+
+{-
+
+playGame :: GameState -> Chooser -> Chooser -> Bool -> IO()
+playGame False state blackStrat whiteStrat
+    | (pawnUpgradeRequired (determinePlayType state Black) == True)  ||  (pawnUpgradeRequired (determinePlayType state White) == True)    = do
+--      let newState = run upgrade  ....
+         in print newState
+            playGame newState blackStrat whiteStrat (checkForWin newState)
+    | otherwise  = 
+        let blackPlayType = determinePlayType state Black
+            whitePlayType = determinePlayType state White
+         in do newState <- roundExecute state blackPlayType whitePlayType
+               playGame newState blackStrat whiteStrat (checkForWin newState)
+
+--playGame True state blackStrat whiteStrat = do
+--  output for winning conditions satisfying IO() return type
+
+-}
+
+
+
+        
+        
+        
+        
+        
+        
 
 
