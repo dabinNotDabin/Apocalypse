@@ -320,16 +320,16 @@ filterNothingMoves  ((Just x):xs)  = [x] ++ filterNothingMoves xs
 -- ========================================================================================
 
 
-
+-- | Gets the third element of a triple (with a very specific type pattern)
 thrd :: ((Int,Int) , (Int,Int) , PlayOption) -> PlayOption
 thrd (_, _, x) = x
 
-
+-- | Gets the second element of a triple (with a very specific type pattern)
 first :: ((Int,Int) , (Int,Int) , PlayOption) -> (Int, Int)
 first ((a,b), _, _) = (a,b)
 
 
-
+-- | Gets the first element of a triple (with a very specific type pattern)
 second :: ((Int,Int) , (Int,Int) , PlayOption) -> (Int, Int)
 second (_, (c,d), _) = (c,d)
 
