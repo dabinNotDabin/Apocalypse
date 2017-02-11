@@ -297,7 +297,7 @@ getBestofGreedyMoves  zs
 
 
 
-
+-- | Removes any set of 'MovesForPiece' that equals Nothing
 filterNothingMoves :: [Maybe ((Int,Int) , (Int,Int) , PlayOption) ] -> [((Int,Int) , (Int,Int) , PlayOption)]
 filterNothingMoves  []             = []
 filterNothingMoves  [Just x]       = [x]
