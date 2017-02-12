@@ -23,6 +23,9 @@ module ApocStrategyGreedy where
 
 import ApocTools
 import CustomTools
+import System.Random
+import System.IO.Unsafe
+
 
 
 
@@ -31,14 +34,10 @@ import CustomTools
 greedy    :: Chooser
 greedy state Normal colour = 
     let playsForPlayer = getAllPlaysForPlayer (theBoard state) (Just (getPieceLocations (theBoard state) colour)) colour
-     in return (getBestofGreedyMoves (filterNothingMoves (getMoveGreedy playsForPlayer)))
+     in return (getBestofGreedyMoves (filterNothingMoves (getMovesGreedy playsForPlayer)))
 
 
-greedy b PawnPlacement c = return (Just [(2,2)])
-
-
-
-
+greedy state PawnPlacement _ = return (Just [getEmptyCells (theBoard state)])
 
 
 

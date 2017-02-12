@@ -42,7 +42,7 @@ import System.Exit
 import ApocTools
 import ApocStrategyHuman
 import ApocStrategyGreedy
-import ApocStrategyEvasive00
+import ApocStrategyEvasive
 import CustomTools
 
 
@@ -62,38 +62,27 @@ main' args = do
     (a, b, isNotInteractive) <- interpretArgs args
     checkmode a b isNotInteractive
 
-    
-{-
-playGame :: GameState -> Chooser -> Chooser -> Bool -> IO()
-playGame state blackStrat whiteStrat isStillPlaying = do
-    print state
-    blackMove <- blackStrat state Normal Black
-    whiteMove <- whiteStrat state Normal White
-    print (runStrategiesNormal state blackMove whiteMove)
--}
 
 
 
 
-
-
-playGame :: Bool -> GameState -> Chooser -> Chooser -> IO()
-playGame False state blackStrat whiteStrat
+playGame :: Int -> Bool -> GameState -> Chooser -> Chooser -> IO()
+playGame x False state blackStrat whiteStrat
     | (pawnUpgradeRequired (determinePlayType state Black) == True)  ||  (pawnUpgradeRequired (determinePlayType state White) == True)    = do
         let newState = upgradePawns state (pawnUpgradeRequired (determinePlayType state White)) (pawnUpgradeRequired (determinePlayType state Black))
          in do a <- checkWin newState
                print state
                checkWin newState
-               playGame a newState blackStrat whiteStrat
+               playGame (x+1) a newState blackStrat whiteStrat
     | otherwise  = do
         let blackPlayType = determinePlayType state Black
             whitePlayType = determinePlayType state White
          in do print state
-               newState <- roundExecute state blackStrat blackPlayType whiteStrat whitePlayType
+               newState <- roundExecute x state blackStrat blackPlayType whiteStrat whitePlayType
                a <- checkWin newState
-               playGame a newState blackStrat whiteStrat
+               playGame (x+1) a newState blackStrat whiteStrat
 
-playGame True state blackStrat whiteStrat = do print state; exitSuccess
+playGame x True state blackStrat whiteStrat = do print state
 
 
 
@@ -102,7 +91,7 @@ playGame True state blackStrat whiteStrat = do print state; exitSuccess
 checkmode :: Chooser -> Chooser -> Bool -> IO()
 checkmode blackStrat whiteStrat isNotInteractive
     | isNotInteractive == False    = interactiveMode
-    | otherwise                    = playGame False initBoard blackStrat whiteStrat
+    | otherwise                    = playGame 0 False initBoard blackStrat whiteStrat
 
  
  
@@ -118,28 +107,8 @@ interactiveMode = do
     b <- getLine
     let blackStrat = getStrategy a
         whiteStrat = getStrategy b
-    playGame False initBoard blackStrat whiteStrat
+    playGame 0 False initBoard blackStrat whiteStrat
 
-
-
-
-
-
-
-
-
-
-
-{-
-doWinResults :: Board -> Player -> Chooser -> Chooser -> IO()
-doWinResults board Black blackStrategy whiteStrategy = do
-    putStrLn $ ("Black Wins! (" ++ (chooser2Str blackStrategy) ++ "): " ++ (read (getNumPawns board Black) :: String)
-                                ++ (chooser2Str WhiteStrategy) ++ "): " ++ (read (getNumPawns board White) :: String) 
-doWinResults board White blackStrategy whiteStrategy = do
-    putStrLn $ ("White Wins! (" ++ (chooser2Str blackStrategy) ++ "): " ++ (read (getNumPawns board Black) :: String)
-                                ++ (chooser2Str WhiteStrategy) ++ "): " ++ (read (getNumPawns board White) :: String) 
-
--}
 
 
 
@@ -230,7 +199,8 @@ checkWin gamestate = do
     b <- checkWinByPawn White gamestate
     c <- checkLossThroughPenalty Black gamestate
     d <- checkLossThroughPenalty White gamestate
-    return (a || b || c || d)
+    e <- checkForDoublePass gamestate
+    return (a || b || c || d || e)
 
 checkWinByPawn :: Player -> GameState -> IO(Bool)
 checkWinByPawn player gamestate =
@@ -257,8 +227,10 @@ checkLossThroughPenalty player gamestate
     | ((player == White) && (checkPenalties gamestate player )) = do putStrLn $ "Black Wins by penalty!"; return True
     | True = do return False
 
-
-
+checkForDoublePass :: GameState -> IO(Bool)
+checkForDoublePass state
+    | (blackPlay state == Passed) && (whitePlay state == Passed) =  do putStrLn $ "Tie -- Double Pass"; return True
+    | otherwise                                                  = return False
 
 
  
@@ -277,11 +249,36 @@ checkLossThroughPenalty player gamestate
 
 
 -- | Takes two moves and a 'GameState', assuming the first to be Black's move and the second to be White's move and executes one 'Normal' turn.
-runStrategiesNormal :: GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> GameState
-runStrategiesNormal state blackMove whiteMove = 
-    let blackPlayed = assessPlay Black Normal blackMove (theBoard state)
-        whitePlayed = assessPlay White Normal whiteMove (theBoard state)
-     in          GameState (blackPlayed)
+runStrategiesNormal :: Int -> GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> GameState
+runStrategiesNormal x state blackMove whiteMove
+    | mod x 21 == 20  = 
+        let blackPlayed = assessPlay Black Normal blackMove (theBoard state)
+            whitePlayed = assessPlay White Normal Nothing (theBoard state)
+         in      GameState (blackPlayed)
+                           ((blackPen state) + (getPen blackPlayed))
+                           (whitePlayed)
+                           ((whitePen state) + (getPen whitePlayed)) 
+                           (updateBoard (theBoard state) blackPlayed whitePlayed)
+    | mod x 22 == 21  = 
+        let blackPlayed = assessPlay Black Normal Nothing (theBoard state)
+            whitePlayed = assessPlay White Normal whiteMove (theBoard state)
+         in      GameState (blackPlayed)
+                           ((blackPen state) + (getPen blackPlayed))
+                           (whitePlayed)
+                           ((whitePen state) + (getPen whitePlayed)) 
+                           (updateBoard (theBoard state) blackPlayed whitePlayed)
+    | mod x 42 == 41  = 
+        let blackPlayed = assessPlay Black Normal Nothing (theBoard state)
+            whitePlayed = assessPlay White Normal Nothing (theBoard state)
+         in      GameState (blackPlayed)
+                           ((blackPen state) + (getPen blackPlayed))
+                           (whitePlayed)
+                           ((whitePen state) + (getPen whitePlayed)) 
+                           (updateBoard (theBoard state) blackPlayed whitePlayed)
+    | otherwise       =
+        let blackPlayed = assessPlay Black Normal blackMove (theBoard state)
+            whitePlayed = assessPlay White Normal whiteMove (theBoard state)
+         in      GameState (blackPlayed)
                            ((blackPen state) + (getPen blackPlayed))
                            (whitePlayed)
                            ((whitePen state) + (getPen whitePlayed)) 
@@ -339,23 +336,23 @@ runStrategiesPawnPlacement state blackMove whiteMove =
 
 
 
-roundExecute :: GameState -> Chooser -> Maybe PlayType -> Chooser -> Maybe PlayType -> IO GameState
+roundExecute :: Int -> GameState -> Chooser -> Maybe PlayType -> Chooser -> Maybe PlayType -> IO GameState
     
-roundExecute state blackStrat (Just Normal)        whiteStrat (Just Normal)          = do
+roundExecute x state blackStrat (Just Normal)        whiteStrat (Just Normal)          = do
     move1 <- blackStrat state Normal Black
     move2 <- whiteStrat state Normal White
-    return (runStrategiesNormal state move1 move2)
+    return (runStrategiesNormal x state move1 move2)
 
-roundExecute state blackStrat (Just PawnPlacement) whiteStrat (Just PawnPlacement)   = do 
+roundExecute x state blackStrat (Just PawnPlacement) whiteStrat (Just PawnPlacement)   = do 
     move1 <- blackStrat state PawnPlacement Black
     move2 <- whiteStrat state PawnPlacement White
     return (runStrategiesPawnPlacement state move1 move2)
 
-roundExecute state blackStrat _                    whiteStrat (Just PawnPlacement)   = do 
+roundExecute x state blackStrat _                    whiteStrat (Just PawnPlacement)   = do 
     move2 <- whiteStrat state PawnPlacement White
     return (runStrategiesPawnPlacement state Nothing move2) 
     
-roundExecute state blackStrat (Just PawnPlacement) whiteStrat  _                     = do 
+roundExecute x state blackStrat (Just PawnPlacement) whiteStrat  _                     = do 
     move1 <- blackStrat state PawnPlacement Black
     return (runStrategiesPawnPlacement state move1 Nothing)
 
