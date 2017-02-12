@@ -27,16 +27,31 @@ import System.Random
 import System.IO.Unsafe
 
 
-
+{-
 
 evasive :: Chooser
 evasive state Normal colour = do
+    move <- 
     let enemy            = getOppositeColour colour
         playsForEnemy    = getAllPlaysForPlayer (theBoard state) (Just (getPieceLocations (theBoard state) enemy)) enemy
         bestEnemy        = getGreedyDest (theBoard state) colour (getBestofGreedyMoves (filterNothingMoves (getMovesGreedy playsForEnemy)))              --grab enemies best move for comparison
         movePieceMoves   = populateMoveList (theBoard state) bestEnemy colour
         playsForPlayer   = getAllPlaysForPlayer (theBoard state) (Just (getPieceLocations (theBoard state) colour)) colour
      in return (getMoveEvasive movePieceMoves (theBoard state) colour)
+
+-}
+
+
+
+evasive :: Chooser
+evasive state Normal colour = 
+    let    enemy            = getOppositeColour colour
+           playsForEnemy    = getAllPlaysForPlayer (theBoard state) (Just (getPieceLocations (theBoard state) enemy)) enemy
+     in do enemyBest <- (getBestofGreedyMoves (filterNothingMoves (getMovesGreedy playsForEnemy)))
+           let bestEnemy        = getGreedyDest (theBoard state) colour enemyBest
+               movePieceMoves   = populateMoveList (theBoard state) bestEnemy colour
+            in (getMoveEvasive movePieceMoves (theBoard state) colour)
+
 
 
 
@@ -49,7 +64,7 @@ getOppositeColour :: Player -> Player
 getOppositeColour colour | colour == Black = White
                          | colour == White = Black
 
-getMoveEvasive :: MovesForPiece -> Board -> Player -> Maybe [(Int,Int)]
+getMoveEvasive :: MovesForPiece -> Board -> Player -> IO (Maybe [(Int,Int)])
 getMoveEvasive (x,[]) board colour = 
     let playsForPlayer = getAllPlaysForPlayer board (Just (getPieceLocations board colour)) colour
      in (getBestofGreedyMoves (filterNothingMoves (getMovesGreedy playsForPlayer)))

@@ -34,7 +34,7 @@ import System.IO.Unsafe
 greedy    :: Chooser
 greedy state Normal colour = 
     let playsForPlayer = getAllPlaysForPlayer (theBoard state) (Just (getPieceLocations (theBoard state) colour)) colour
-     in return (getBestofGreedyMoves (filterNothingMoves (getMovesGreedy playsForPlayer)))
+     in (getBestofGreedyMoves (filterNothingMoves (getMovesGreedy playsForPlayer)))
 
 
 greedy state PawnPlacement _ = return (Just [getEmptyCells (theBoard state)])
