@@ -107,6 +107,7 @@ interactiveMode = do
     b <- getLine
     let blackStrat = getStrategy a
         whiteStrat = getStrategy b
+-- Have to verify strategy names again here (recursively i think) because getStrategy has a default of human, even if invalid ones were entered
     playGame 0 False initBoard blackStrat whiteStrat
 
 
