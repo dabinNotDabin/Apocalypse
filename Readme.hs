@@ -2,8 +2,6 @@
 
 Notes at the end may be important for some of these TODO clauses
 
-TODO -7) If you try running Apoc with invalid command line args, it reprompts but I think it's supposed to quit. 
-
 TODO -6) Finish playGame (the one that's commented out) in Apoc.hs. I added to the old one quite a bit but left 
          it there so everything would still compile until we get the newer one finished.
 
