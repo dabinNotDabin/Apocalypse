@@ -9,7 +9,8 @@ Description : Custom Data Types and Functions
 module CustomTools where
 
 import ApocTools
-
+import System.Random
+import System.IO.Unsafe
 
 
 
@@ -48,6 +49,26 @@ type MovesForPiece = ((Int, Int) ,  [((Int, Int) , PlayOption)])
 
 -- | A list of 'MovesForPiece'
 type MoveListForPlayer = [MovesForPiece]
+
+
+
+
+
+
+
+
+---2D list utility functions-------------------------------------------------------
+
+-- | Replaces the nth element in a row with a new element.
+replace         :: [a] -> Int -> a -> [a]
+replace xs n elem = let (ys,zs) = splitAt n xs
+                     in (if null zs then (if null ys then [] else init ys) else ys)
+                        ++ [elem]
+                        ++ (if null zs then [] else tail zs)
+
+-- | Replaces the (x,y)th element in a list of lists with a new element.
+replace2        :: [[a]] -> (Int,Int) -> a -> [[a]]
+replace2 xs (x,y) elem = replace xs y (replace (xs !! y) x elem)
 
 
 
@@ -107,6 +128,71 @@ getNumPawns board White     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard bo
 
 
 
+-- | Returns the coordinate (if any) in a singleton list that an upgradable pawn exists for the specified 'Player'
+--   Length can be zero -- indicates no such pawn exists
+getUpgradablePawnLocation :: Board -> Player -> [(Int, Int)]
+getUpgradablePawnLocation board Black     = [(a,0) | a <- [0..4], (getFromBoard (board) (a,0)) == BP]
+getUpgradablePawnLocation board White     = [(a,4) | a <- [0..4], (getFromBoard (board) (a,4)) == WP]
+
+
+
+
+
+-- | Checks whether either 'Player' has reached 0 pawns
+--   If zero pawns are found, returns the winner ('Black' or 'White')
+--   Returns 'Nothing' for no winner
+checkForZeroPawns :: Board -> Maybe Player
+checkForZeroPawns board
+    | ((getNumPawns board Black) == 0)    = Just White
+    | ((getNumPawns board White) == 0)    = Just Black
+    | otherwise                           = Nothing
+
+
+
+-- | Checks whether the specified Player has accumulated 2 penalty points, returns true if they have
+checkPenalties :: GameState -> Player -> Bool
+checkPenalties state Black = ((blackPen state) >= 2)
+checkPenalties state White = ((whitePen state) >= 2)
+
+
+
+
+ 
+
+
+
+upgradePawns :: GameState -> Bool -> Bool -> GameState --board, white, black
+upgradePawns oldGS white black 
+        | (white == True  && black == True)  = updateBoth  oldGS
+        | (white == True  && black == False) = updateWhite oldGS
+        | (white == False && black == True)  = updateBlack oldGS
+
+updateBoth :: GameState -> GameState
+updateBoth g = updateWhite (updateBlack g)
+
+updateBlack :: GameState -> GameState
+updateBlack g = 
+        let board = (theBoard g)
+            coord = getUpgradablePawnLocation board Black
+        in  GameState ((blackPlay g))
+                      ((blackPen  g))
+                      ((whitePlay g))
+                      ((whitePen  g))
+                      ((replace2 board (head coord) BK))
+
+updateWhite :: GameState -> GameState
+updateWhite g = 
+        let board = (theBoard g)
+            coord = getUpgradablePawnLocation board White
+        in  GameState ((blackPlay g))
+                      ((blackPen  g))
+                      ((whitePlay g))
+                      ((whitePen  g))
+                      ((replace2 board (head coord) WK))
+
+
+
+
 
 
 
@@ -123,6 +209,12 @@ getNumPawns board White     = sum [1 | x <- [0..4], y <- [0..4], getFromBoard bo
 -- ========================================================================================
 -- ========================Functions For Use In Implementing AI============================
 -- ========================================================================================
+
+
+-- | 
+getEmptyCells :: Board -> (Int, Int)
+getEmptyCells board = let emptyCells = [(a,b) | a <- [0..4], b <- [0..4], (getFromBoard board (a,b) == E)]
+                       in  emptyCells !! (unsafePerformIO (randomRIO (0, ((length emptyCells) - 1))))
 
 
 -- | Gets a list of coordinates that represent the locations of any Pieces on the board of the specified Player
@@ -297,11 +389,13 @@ getBestofGreedyMoves  zs
 
 
 
--- | Removes any set of 'MovesForPiece' that equals Nothing
-filterNothingMoves :: [Maybe ((Int,Int) , (Int,Int) , PlayOption) ] -> [((Int,Int) , (Int,Int) , PlayOption)]
+
+filterNothingMoves :: [Maybe ((Int,Int) , (Int,Int) , PlayOption)] -> [((Int,Int) , (Int,Int) , PlayOption)]
+filterNothingMoves  [Nothing]      = []
 filterNothingMoves  []             = []
 filterNothingMoves  [Just x]       = [x]
 filterNothingMoves  ((Just x):xs)  = [x] ++ filterNothingMoves xs
+filterNothingMoves  (Nothing:xs)   = filterNothingMoves xs 
 
 
 
@@ -320,16 +414,16 @@ filterNothingMoves  ((Just x):xs)  = [x] ++ filterNothingMoves xs
 -- ========================================================================================
 
 
--- | Gets the third element of a triple (with a very specific type pattern)
+
 thrd :: ((Int,Int) , (Int,Int) , PlayOption) -> PlayOption
 thrd (_, _, x) = x
 
--- | Gets the second element of a triple (with a very specific type pattern)
+
 first :: ((Int,Int) , (Int,Int) , PlayOption) -> (Int, Int)
 first ((a,b), _, _) = (a,b)
 
 
--- | Gets the first element of a triple (with a very specific type pattern)
+
 second :: ((Int,Int) , (Int,Int) , PlayOption) -> (Int, Int)
 second (_, (c,d), _) = (c,d)
 
@@ -366,6 +460,14 @@ instance Show Outcome where
 
 
 
+instance Show PlayType where
+         show Normal        = "Normal"
+         show PawnPlacement = "PawnPlacement"
+
+ 
+
+
+
 instance Show PlayOption where
          show AttackPawn     = "Capture Pawn"
          show AttackKnight   = "Capture Knight"
@@ -378,11 +480,11 @@ instance Show PlayOption where
 
 testBoard       :: GameState
 testBoard       = GameState Init 0 Init 0
-                  [ [E, WP, WP, WP, WK],
+                  [ [WK, WP, E, WP, WK],
                     [WP, E , E , E , WP],
-                    [E , E , WK , E , E ],
+                    [E , E , E , E , E ],
                     [BP, E , E , E , BP],
-                    [BK, BP, BP, BP, BK] ]
+                    [BK, BP, WP, BP, BK] ]
 
 
 
@@ -401,8 +503,8 @@ testBoard2       = GameState Init 0 Init 0
 
 testBoard3       :: GameState
 testBoard3       = GameState Init 0 Init 0
-                  [ [WK, WP, BP, WP, WK],
-                    [WP, E , BP , E , WP],
+                  [ [BK, WP, E, WP, WK],
+                    [WP, E , WP , E , WP],
                     [E , E , E , E , E ],
                     [BP, E , E , E , BP],
                     [BK, BP, BP, BP, BK] ]
@@ -429,6 +531,34 @@ testBoard5       = GameState Init 0 Init 0
                     [E , WK , E , E , E ],
                     [E, E , E , E , E],
                     [BK, E, E, E, E] ]
+
+
+
+
+
+testBoard6       :: GameState
+testBoard6       = GameState Init 0 Init 0
+                  [ [WK, E, E, E, E],
+                    [E, E , E , E , WP],
+                    [E , WK , E , E , E ],
+                    [E, BP , E , E , E],
+                    [E, E, E, E, E] ]
+
+
+
+
+
+
+
+testBoard7       :: GameState
+testBoard7       = GameState Init 0 Init 0
+                  [ [WK, E, E, E, E],
+                    [E, E , E , E , WP],
+                    [E , WK , E , E , E ],
+                    [E, E , E , E , E],
+                    [BK, E, E, E, E] ]
+
+
 
 
 

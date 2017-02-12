@@ -38,11 +38,11 @@ import Data.List
 import Data.Maybe (fromJust, isNothing)
 import System.Environment
 import System.IO.Unsafe
-import System.ExitSuccess
+import System.Exit
 import ApocTools
 import ApocStrategyHuman
 import ApocStrategyGreedy
-import ApocStrategyEvasive
+import ApocStrategyEvasive00
 import CustomTools
 
 
@@ -63,36 +63,37 @@ main' args = do
     checkmode a b isNotInteractive
 
     
-
+{-
 playGame :: GameState -> Chooser -> Chooser -> Bool -> IO()
 playGame state blackStrat whiteStrat isStillPlaying = do
     print state
     blackMove <- blackStrat state Normal Black
     whiteMove <- whiteStrat state Normal White
     print (runStrategiesNormal state blackMove whiteMove)
+-}
 
 
 
 
 
-{-
 
-playGame :: GameState -> Chooser -> Chooser -> Bool -> IO()
+playGame :: Bool -> GameState -> Chooser -> Chooser -> IO()
 playGame False state blackStrat whiteStrat
     | (pawnUpgradeRequired (determinePlayType state Black) == True)  ||  (pawnUpgradeRequired (determinePlayType state White) == True)    = do
---      let newState = run upgrade  ....
-         in print newState
-            playGame newState blackStrat whiteStrat (checkForWin newState)
-    | otherwise  = 
+        let newState = upgradePawns state (pawnUpgradeRequired (determinePlayType state White)) (pawnUpgradeRequired (determinePlayType state Black))
+         in do a <- checkWin newState
+               print state
+               checkWin newState
+               playGame a newState blackStrat whiteStrat
+    | otherwise  = do
         let blackPlayType = determinePlayType state Black
             whitePlayType = determinePlayType state White
-         in do newState <- roundExecute state blackPlayType whitePlayType
-               playGame newState blackStrat whiteStrat (checkForWin newState)
+         in do print state
+               newState <- roundExecute state blackStrat blackPlayType whiteStrat whitePlayType
+               a <- checkWin newState
+               playGame a newState blackStrat whiteStrat
 
---playGame True state blackStrat whiteStrat = do
---  output for winning conditions satisfying IO() return type
-
--}
+playGame True state blackStrat whiteStrat = do print state; exitSuccess
 
 
 
@@ -101,7 +102,7 @@ playGame False state blackStrat whiteStrat
 checkmode :: Chooser -> Chooser -> Bool -> IO()
 checkmode blackStrat whiteStrat isNotInteractive
     | isNotInteractive == False    = interactiveMode
-    | otherwise                    = playGame initBoard blackStrat whiteStrat True
+    | otherwise                    = playGame False initBoard blackStrat whiteStrat
 
  
  
@@ -117,7 +118,7 @@ interactiveMode = do
     b <- getLine
     let blackStrat = getStrategy a
         whiteStrat = getStrategy b
-    playGame initBoard blackStrat whiteStrat True
+    playGame False initBoard blackStrat whiteStrat
 
 
 
@@ -144,20 +145,6 @@ doWinResults board White blackStrategy whiteStrategy = do
 
 
 
-
-
----2D list utility functions-------------------------------------------------------
-
--- | Replaces the nth element in a row with a new element.
-replace         :: [a] -> Int -> a -> [a]
-replace xs n elem = let (ys,zs) = splitAt n xs
-                     in (if null zs then (if null ys then [] else init ys) else ys)
-                        ++ [elem]
-                        ++ (if null zs then [] else tail zs)
-
--- | Replaces the (x,y)th element in a list of lists with a new element.
-replace2        :: [[a]] -> (Int,Int) -> a -> [[a]]
-replace2 xs (x,y) elem = replace xs y (replace (xs !! y) x elem)
 
 
 -- | Moves the piece from the first coordinate to the second coordinate and sets the first coordinate == Cell
@@ -235,41 +222,45 @@ printStrategies (x:xs) = do
 
 
 
-
-
-
--- | Returns the coordinate (if any) in a singleton list that an upgradable pawn exists for the specified 'Player'
---   Length can be zero -- indicates no such pawn exists
-getUpgradablePawnLocation :: Board -> Player -> [(Int, Int)]
-getUpgradablePawnLocation board Black     = [(a,0) | a <- [0..4], (getFromBoard (board) (a,0)) == BP]
-getUpgradablePawnLocation board White     = [(a,4) | a <- [0..4], (getFromBoard (board) (a,4)) == WP]
-
-
-
-
-
--- | Checks whether either 'Player' has reached 0 pawns
---   If zero pawns are found, returns the winner ('Black' or 'White')
---   Returns 'Nothing' for no winner
-checkForZeroPawns :: Board -> Maybe Player
-checkForZeroPawns board
-    | ((getNumPawns board Black) == 0)    = Just White
-    | ((getNumPawns board White) == 0)    = Just Black
-    | otherwise                           = Nothing
-
-
-
--- | Checks whether the specified Player has accumulated 2 penalty points, returns true if they have
-checkPenalties :: GameState -> Player -> Bool
-checkPenalties state Black = ((blackPen state) >= 2)
-checkPenalties state White = ((whitePen state) >= 2)
-
-
-
-
  
  
- 
+checkWin :: GameState -> IO(Bool)
+checkWin gamestate = do
+    a <- checkWinByPawn Black gamestate
+    b <- checkWinByPawn White gamestate
+    c <- checkLossThroughPenalty Black gamestate
+    d <- checkLossThroughPenalty White gamestate
+    return (a || b || c || d)
+
+checkWinByPawn :: Player -> GameState -> IO(Bool)
+checkWinByPawn player gamestate =
+    if player == Black
+        then let aBoard = theBoard gamestate
+             in (checkWhitePawns aBoard)
+    else
+        let aBoard = theBoard gamestate
+        in (checkBlackPawns aBoard)
+
+checkBlackPawns :: [[Cell]] -> IO(Bool)
+checkBlackPawns [] = do putStrLn $ "White Wins by taking all Pawns!"; return True
+checkBlackPawns (x:xs)   | elem BP x == True = do return False
+                         | elem BP x == False = checkBlackPawns xs
+
+checkWhitePawns :: [[Cell]] -> IO(Bool)
+checkWhitePawns [] = do putStrLn $ "Black Wins by taking all Pawns!"; return True
+checkWhitePawns (x:xs)   | elem WP x == True = do return False
+                         | elem WP x == False = checkWhitePawns xs
+
+checkLossThroughPenalty :: Player -> GameState -> IO(Bool)
+checkLossThroughPenalty player gamestate 
+    | ((player == Black) && (checkPenalties gamestate player )) = do putStrLn $ "White Wins by penalty!"; return True
+    | ((player == White) && (checkPenalties gamestate player )) = do putStrLn $ "Black Wins by penalty!"; return True
+    | True = do return False
+
+
+
+
+
  
  
  
@@ -351,9 +342,9 @@ runStrategiesPawnPlacement state blackMove whiteMove =
 roundExecute :: GameState -> Chooser -> Maybe PlayType -> Chooser -> Maybe PlayType -> IO GameState
     
 roundExecute state blackStrat (Just Normal)        whiteStrat (Just Normal)          = do
-    move1 <- blackStrat state PawnPlacement Black
-    move2 <- whiteStrat state PawnPlacement White
-    return (runStrategiesPawnPlacement state move1 move2)
+    move1 <- blackStrat state Normal Black
+    move2 <- whiteStrat state Normal White
+    return (runStrategiesNormal state move1 move2)
 
 roundExecute state blackStrat (Just PawnPlacement) whiteStrat (Just PawnPlacement)   = do 
     move1 <- blackStrat state PawnPlacement Black
@@ -410,8 +401,10 @@ getPlay True  colour  Nothing                 board = getPlay' board colour
 getPlay True  _      (Just [(x0,y0),(x1,y1)]) _     = Played ((x0,y0),(x1,y1))
 getPlay True  colour (Just [(x0,y0)])         board = PlacedPawn ( ((getUpgradablePawnLocation board colour) !! 0),(x0,y0))
 getPlay False _      (Just [(x0,y0),(x1,y1)]) _     = Goofed ((x0,y0),(x1,y1))
-getPlay False colour (Just [(x0,y0)])         board = BadPlacedPawn ( ((getUpgradablePawnLocation board colour) !! 0),(x0,y0))
-
+getPlay False colour (Just [(x0,y0)])         board
+    | len == 0     = BadPlacedPawn ((1,2),(x0,y0))
+    | otherwise    = BadPlacedPawn ( ((getUpgradablePawnLocation board colour) !! 0),(x0,y0))
+    where len = length (getUpgradablePawnLocation board colour)
 
 -- | Helper function for getPlay, used when determining whether a pawn upgrade occurred.
 getPlay' :: Board -> Player -> Played
@@ -574,9 +567,9 @@ updateBoard' board Clash         blackMove                whiteMove             
 
 updateBoard' board Swap          (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = swap board (w0,x0) (y0,z0)
 
-updateBoard' board WhiteDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveAndFill board (y0,z0) (y1,z1) (getFromBoard board (w0,x0))
+updateBoard' board WhiteDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = replace2 (moveAndFill board (y0,z0) (y1,z1) (getFromBoard board (w0,x0))) (w0,x0) E
 
-updateBoard' board BlackDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveAndFill board (w0,x0) (w1,x1) (getFromBoard board (y0,z0))
+updateBoard' board BlackDodge    (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = replace2 (moveAndFill board (w0,x0) (w1,x1) (getFromBoard board (y0,z0))) (y0,z0) E
 
 updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])    = moveAndFill (moveAndFill board (w0,x0) (w1,x1) E) (y0,z0) (y1,z1) E
 
