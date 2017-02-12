@@ -79,6 +79,36 @@ pawnUpgradeRequired :: Maybe PlayType -> Bool
 pawnUpgradeRequired Nothing = True
 pawnUpgradeRequired _       = False
 
+{-
+-- | Takes the current 'GameState' and a 'Player' and returns either 'PawnPlacement' or 'Normal' to indicate
+--   the expected user input for that 'Player', for that turn or returns 'Nothing' if it's an upgrade round.
+determinePlayType :: Board -> Player -> Maybe PlayType
+determinePlayType board Black  = determineBlackPlayType board
+determinePlayType board White  = determineWhitePlayType board
+
+
+-- |Helper function for determinePlayType;
+-- If any square in row 0 contains a 'BlackPawn', 'PlayType' is 'PawnPlacement', otherwise it's 'Normal', or returns 'Nothing' if a pawn is to be upgraded
+determineBlackPlayType :: Board -> Maybe PlayType
+determineBlackPlayType board
+    | (length [(a,0) | a <- [0..4], (getFromBoard board (a,0)) == BP] > 0) &&
+                                     getNumKnights board Black > 1              = Just PawnPlacement
+    | (length [(a,0) | a <- [0..4], (getFromBoard board (a,0)) == BP] > 0) &&
+                                     getNumKnights board Black < 2              = Nothing
+    | otherwise                                                                            = Just Normal
+
+
+-- |Helper function for determinePlayType;
+-- If any square in row 4 contains a 'WhitePawn', 'PlayType' is 'PawnPlacement', otherwise it's 'Normal', or returns 'Nothing' if a pawn is to be upgraded
+determineWhitePlayType :: Board -> Maybe PlayType
+determineWhitePlayType board
+    | (length [(a,4) | a <- [0..4], (getFromBoard board (a,4)) == WP] > 0) &&
+                                     getNumKnights board White > 1              = Just PawnPlacement
+    | (length [(a,0) | a <- [0..4], (getFromBoard board (a,4)) == WP] > 0) &&
+                                     getNumKnights board White < 2              = Nothing
+    | otherwise                                                                 = Just Normal
+-}
+
 
 -- | Takes the current 'GameState' and a 'Player' and returns either 'PawnPlacement' or 'Normal' to indicate
 --   the expected user input for that 'Player', for that turn or returns 'Nothing' if it's an upgrade round.
@@ -92,7 +122,9 @@ determinePlayType state White  = determineWhitePlayType state
 determineBlackPlayType :: GameState -> Maybe PlayType
 determineBlackPlayType state
     | (length [(a,0) | a <- [0..4], (getFromBoard (theBoard state) (a,0)) == BP] > 0) &&
-                                     getNumKnights (theBoard state) Black > 1              = Just PawnPlacement
+                                     getNumKnights (theBoard state) Black > 1         && 
+                                    (blackPlay state) /= NullPlacedPawn               &&
+                                    (whitePlay state) /= NullPlacedPawn                    = Just PawnPlacement
     | (length [(a,0) | a <- [0..4], (getFromBoard (theBoard state) (a,0)) == BP] > 0) &&
                                      getNumKnights (theBoard state) Black < 2              = Nothing
     | otherwise                                                                            = Just Normal
@@ -107,7 +139,6 @@ determineWhitePlayType state
     | (length [(a,0) | a <- [0..4], (getFromBoard (theBoard state) (a,4)) == WP] > 0) &&
                                      getNumKnights (theBoard state) White < 2              = Nothing
     | otherwise                                                                            = Just Normal
-
 
 
 
@@ -166,6 +197,7 @@ upgradePawns oldGS white black
         | (white == True  && black == True)  = updateBoth  oldGS
         | (white == True  && black == False) = updateWhite oldGS
         | (white == False && black == True)  = updateBlack oldGS
+        | otherwise                          = oldGS
 
 updateBoth :: GameState -> GameState
 updateBoth g = updateWhite (updateBlack g)
@@ -174,9 +206,9 @@ updateBlack :: GameState -> GameState
 updateBlack g = 
         let board = (theBoard g)
             coord = getUpgradablePawnLocation board Black
-        in  GameState ((blackPlay g))
+        in  GameState (UpgradedPawn2Knight (head coord))
                       ((blackPen  g))
-                      ((whitePlay g))
+                      (None)
                       ((whitePen  g))
                       ((replace2 board (head coord) BK))
 
@@ -184,9 +216,9 @@ updateWhite :: GameState -> GameState
 updateWhite g = 
         let board = (theBoard g)
             coord = getUpgradablePawnLocation board White
-        in  GameState ((blackPlay g))
+        in  GameState (None)
                       ((blackPen  g))
-                      ((whitePlay g))
+                      (UpgradedPawn2Knight (head coord))
                       ((whitePen  g))
                       ((replace2 board (head coord) WK))
 
@@ -592,11 +624,11 @@ testBoard6       = GameState Init 0 Init 0
 
 testBoard7       :: GameState
 testBoard7       = GameState Init 0 Init 0
-                  [ [WK, E, E, E, E],
-                    [E, E , E , E , WP],
-                    [E , WK , E , E , E ],
-                    [E, E , E , E , E],
-                    [BK, E, E, E, E] ]
+                  [ [WK, WP, BP, WP, WK],
+                    [WP, E , E , E , WP],
+                    [E , E , E , E , E ],
+                    [BP, E , E , E , BP],
+                    [BK, E, BP, BP, BK] ]
 
 
 
