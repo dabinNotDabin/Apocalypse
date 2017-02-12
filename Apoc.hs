@@ -65,6 +65,27 @@ main' args = do
 
 
 
+{-
+playGame :: Int -> Bool -> GameState -> Chooser -> Chooser -> IO()
+playGame x False state blackStrat whiteStrat
+    | (pawnUpgradeRequired (determinePlayType (theBoard state) Black) == True)  ||  (pawnUpgradeRequired (determinePlayType (theBoard state) White) == True)    = do
+        let newState = upgradePawns state (pawnUpgradeRequired (determinePlayType (theBoard state) White)) (pawnUpgradeRequired (determinePlayType (theBoard state) Black))
+         in do a <- checkWin newState
+               print state
+               checkWin newState
+               playGame (x+1) a newState blackStrat whiteStrat
+    | otherwise  = do
+        let blackPlayType = determinePlayType (theBoard state) Black
+            whitePlayType = determinePlayType (theBoard state) White
+         in do print state
+               newState <- roundExecute x state blackStrat blackPlayType whiteStrat whitePlayType
+               a <- checkWin newState
+               playGame (x+1) a newState blackStrat whiteStrat
+
+playGame x True state blackStrat whiteStrat = do print state
+-}
+
+
 
 playGame :: Int -> Bool -> GameState -> Chooser -> Chooser -> IO()
 playGame x False state blackStrat whiteStrat
@@ -257,7 +278,7 @@ checkForDoublePass state
 -- | Takes two moves and a 'GameState', assuming the first to be Black's move and the second to be White's move and executes one 'Normal' turn.
 runStrategiesNormal :: Int -> GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> GameState
 runStrategiesNormal x state blackMove whiteMove
-    | x == 15 || x == 20 = 
+    | x == 45 || x == 50 = 
         let blackPlayed = assessPlay Black Normal blackMove (theBoard state)
             whitePlayed = assessPlay White Normal Nothing (theBoard state)
          in      GameState (blackPlayed)
@@ -265,7 +286,7 @@ runStrategiesNormal x state blackMove whiteMove
                            (whitePlayed)
                            ((whitePen state) + (getPen whitePlayed)) 
                            (updateBoard (theBoard state) blackPlayed whitePlayed)
-    | x == 16 || x == 21 = 
+    | x == 46 || x == 51 = 
         let blackPlayed = assessPlay Black Normal Nothing (theBoard state)
             whitePlayed = assessPlay White Normal whiteMove (theBoard state)
          in      GameState (blackPlayed)
@@ -273,7 +294,7 @@ runStrategiesNormal x state blackMove whiteMove
                            (whitePlayed)
                            ((whitePen state) + (getPen whitePlayed)) 
                            (updateBoard (theBoard state) blackPlayed whitePlayed)
-    | x == 41  = 
+    | x == 70  = 
         let blackPlayed = assessPlay Black Normal Nothing (theBoard state)
             whitePlayed = assessPlay White Normal Nothing (theBoard state)
          in      GameState (blackPlayed)
@@ -301,15 +322,29 @@ runStrategiesNormal x state blackMove whiteMove
 -- | Takes two moves and a 'GameState' assuming the first to be Black's move and the second to be White's move and executes one 'PawnPlacement' turn. 
 --   Both players can place pawns on the same round. If just one 'Player' is placing on a turn, pass Nothing in for the other 'Player'
 --   Can be called with Nothing for both players' moves and will execute an upgrade pawn to knight.
-runStrategiesPawnPlacement :: GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> GameState
-runStrategiesPawnPlacement state Nothing   Nothing   =
-                 GameState (getPlay True Black Nothing (theBoard state))
-                           ((blackPen state))
-                           (getPlay True Black Nothing (theBoard state))
+runStrategiesPawnPlacement :: GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> Maybe Player -> GameState
+runStrategiesPawnPlacement state Nothing   Nothing   (Just Black) =
+                GameState (getPlay True Black Nothing (theBoard state))
+                           ((blackPen state) + (1))
+                           (None)
                            ((whitePen state)) 
                            (updateBoard (theBoard state) None None)
 
-runStrategiesPawnPlacement state Nothing   whiteMove = 
+runStrategiesPawnPlacement state Nothing   Nothing   (Just White) =
+                GameState (None)
+                           ((blackPen state))
+                           (getPlay True White Nothing (theBoard state))
+                           ((whitePen state) + (1)) 
+                           (updateBoard (theBoard state) None None)
+
+runStrategiesPawnPlacement state Nothing   Nothing   Nothing =
+                GameState (Passed)
+                           ((blackPen state))
+                           (Passed)
+                           ((whitePen state)) 
+                           (updateBoard (theBoard state) None None)
+
+runStrategiesPawnPlacement state Nothing   whiteMove _ = 
     let blackPlayed = None 
         whitePlayed = assessPlay White PawnPlacement whiteMove (theBoard state)
      in          GameState (blackPlayed)
@@ -319,7 +354,7 @@ runStrategiesPawnPlacement state Nothing   whiteMove =
                            (updateBoard (theBoard state) blackPlayed whitePlayed)
 
  
-runStrategiesPawnPlacement state blackMove Nothing   = 
+runStrategiesPawnPlacement state blackMove Nothing  _ = 
     let blackPlayed = assessPlay Black PawnPlacement blackMove (theBoard state)
         whitePlayed = None
      in          GameState (blackPlayed)
@@ -328,7 +363,7 @@ runStrategiesPawnPlacement state blackMove Nothing   =
                            ((whitePen state) + (getPen whitePlayed)) 
                            (updateBoard (theBoard state) blackPlayed whitePlayed)
 
-runStrategiesPawnPlacement state blackMove whiteMove = 
+runStrategiesPawnPlacement state blackMove whiteMove _ = 
     let blackPlayed   = assessPlay Black PawnPlacement blackMove (theBoard state)
         whitePlayed   = assessPlay White PawnPlacement whiteMove (theBoard state)
      in           GameState (blackPlayed)
@@ -343,7 +378,14 @@ runStrategiesPawnPlacement state blackMove whiteMove =
 
 
 roundExecute :: Int -> GameState -> Chooser -> Maybe PlayType -> Chooser -> Maybe PlayType -> IO GameState
+roundExecute x state blackStrat (Just Normal)          whiteStrat (Just PawnPlacement)   = do 
+    move2 <- whiteStrat state PawnPlacement White
+    return (runStrategiesPawnPlacement state Nothing move2 (Just White)) 
     
+roundExecute x state blackStrat (Just PawnPlacement) whiteStrat  (Just Normal)           = do 
+    move1 <- blackStrat state PawnPlacement Black
+    return (runStrategiesPawnPlacement state move1 Nothing (Just Black))
+
 roundExecute x state blackStrat (Just Normal)        whiteStrat (Just Normal)          = do
     move1 <- blackStrat state Normal Black
     move2 <- whiteStrat state Normal White
@@ -352,18 +394,7 @@ roundExecute x state blackStrat (Just Normal)        whiteStrat (Just Normal)   
 roundExecute x state blackStrat (Just PawnPlacement) whiteStrat (Just PawnPlacement)   = do 
     move1 <- blackStrat state PawnPlacement Black
     move2 <- whiteStrat state PawnPlacement White
-    return (runStrategiesPawnPlacement state move1 move2)
-
-roundExecute x state blackStrat _                    whiteStrat (Just PawnPlacement)   = do 
-    move2 <- whiteStrat state PawnPlacement White
-    return (runStrategiesPawnPlacement state Nothing move2) 
-    
-roundExecute x state blackStrat (Just PawnPlacement) whiteStrat  _                     = do 
-    move1 <- blackStrat state PawnPlacement Black
-    return (runStrategiesPawnPlacement state move1 Nothing)
-
-
-
+    return (runStrategiesPawnPlacement state move1 move2 Nothing)
 
 
 
@@ -412,8 +443,8 @@ getPlay False colour (Just [(x0,y0)])         board
 -- | Helper function for getPlay, used when determining whether a pawn upgrade occurred.
 getPlay' :: Board -> Player -> Played
 getPlay' board colour
-    | length upgradablePawnLocation /= 0     = UpgradedPawn2Knight $ upgradablePawnLocation !! 0
-    | otherwise                              = None
+    | length upgradablePawnLocation /= 0 && getNumKnights board colour < 2  = UpgradedPawn2Knight $ upgradablePawnLocation !! 0
+    | otherwise                                                             = NullPlacedPawn
     where upgradablePawnLocation = getUpgradablePawnLocation board colour
 
 
@@ -534,7 +565,7 @@ getMoveType _     _     _                                                 = NoEv
 --   All other combinations are NoEvent moves and there are four possible combinations of NoEvent moves
 --      - that will affect the board and the last pattern is a catch all that does not apply changes.
 updateBoard :: Board -> Played -> Played -> Board
---updateBoard board None                        None                                    = upgrade2Knight board
+updateBoard board None                        None                                    = board
 
 updateBoard board (Played ((w0,x0),(w1,x1))) (Played ((y0,z0),(y1,z1)))               = 
     let moveType = getMoveType board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
