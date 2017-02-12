@@ -251,7 +251,7 @@ checkForDoublePass state
 -- | Takes two moves and a 'GameState', assuming the first to be Black's move and the second to be White's move and executes one 'Normal' turn.
 runStrategiesNormal :: Int -> GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> GameState
 runStrategiesNormal x state blackMove whiteMove
-    | mod x 21 == 20  = 
+    | x == 20 = 
         let blackPlayed = assessPlay Black Normal blackMove (theBoard state)
             whitePlayed = assessPlay White Normal Nothing (theBoard state)
          in      GameState (blackPlayed)
@@ -259,7 +259,7 @@ runStrategiesNormal x state blackMove whiteMove
                            (whitePlayed)
                            ((whitePen state) + (getPen whitePlayed)) 
                            (updateBoard (theBoard state) blackPlayed whitePlayed)
-    | mod x 22 == 21  = 
+    | x == 21 = 
         let blackPlayed = assessPlay Black Normal Nothing (theBoard state)
             whitePlayed = assessPlay White Normal whiteMove (theBoard state)
          in      GameState (blackPlayed)
@@ -267,7 +267,7 @@ runStrategiesNormal x state blackMove whiteMove
                            (whitePlayed)
                            ((whitePen state) + (getPen whitePlayed)) 
                            (updateBoard (theBoard state) blackPlayed whitePlayed)
-    | mod x 42 == 41  = 
+    | x == 41  = 
         let blackPlayed = assessPlay Black Normal Nothing (theBoard state)
             whitePlayed = assessPlay White Normal Nothing (theBoard state)
          in      GameState (blackPlayed)
