@@ -6,6 +6,13 @@ TODO -8) I'm probably not gonna be up too early, It's 4:30 lol so I'm probably g
          moves working to a degree. I couldn't get it to stop going into loops so I passed an int into playGame like Wynn said and after a
          certain # of turns it double passes and ties the game. In runStrategiesNormal you'll see this. I got it so that it goes into a
          loop less often and after 70 turns it just double passes and ties. If you wanna mess with it go for it.
+             Note**** -It also makes one Player pass after 45/46 turns to try to kcik out of the loop but that wasn't always working either.
+                      -If we turn any of these numbers too low and Rob runs human vs human, our game will automatically pass when he
+                      expects it to do something else and the tes won't pass.
+                      -Basically we want these numbers to be higher than the maximum number of rounds Rob would have created in a acript.
+                      Maybe we should just make it really high to avoid an issue?
+                      - There's also a timeout in his checker which may mean we have to set it low enough not to trigger the timeout but
+                      high enough to consider the previous point
          
 
 
