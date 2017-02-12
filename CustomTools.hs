@@ -33,7 +33,7 @@ data Outcome  = Win   -- ^ Used to indicate a Win in a Clash  -- Taken from the 
 -- | Used to represent options the pieces may have for AI strategy implementation, in alphabetical order to facilitate use of Ord. 
 --   TakeKnight will be considered the greatest move where a FreePawn Move will be considered the least.
 data PlayOption = AttackKnight       -- ^ Indicates that a Knight Capture is available
-                | AttackPawn         -- ^ Indicates that a Pawn Capture is available
+                | BlastPawn         -- ^ Indicates that a Pawn Capture is available
                 | BoostPawn          -- ^ Indicates that a move to Upgrade a Pawn is available
                 | EmptyCell          -- ^ Indicates that a Regular move is available (None of the Above)
                 | PlacePawn          -- ^ Indicates that a move to receive a  Pawn Placement turn is available
@@ -287,7 +287,7 @@ getCaptureLocations xs ys     = Just [(a,b) | a <- [0..4], b <- [0..4], (elem (a
 -- | Doesn't validate moves, assumes the move to be valid for the piece at the source coordinate
 getPlayOption :: Board -> Player -> (Int, Int) -> (Int, Int) -> PlayOption
 getPlayOption board Black (w,x) (y,z)
-    | dest   == WP                                                                     = AttackPawn      
+    | dest   == WP                                                                     = BlastPawn      
     | dest   == WK                                                                     = AttackKnight    
     | source == BP  &&  dest == E  &&   row == 0  &&  getNumKnights board Black == 2   = PlacePawn
     | source == BP  &&  dest == E  &&   row == 0  &&  getNumKnights board Black <  2   = BoostPawn
@@ -296,7 +296,7 @@ getPlayOption board Black (w,x) (y,z)
           dest   = getFromBoard board (y,z)
           row    = z
 getPlayOption board White (w,x) (y,z)
-    | dest == BP                                                                       = AttackPawn        
+    | dest == BP                                                                       = BlastPawn        
     | dest == BK                                                                       = AttackKnight    
     | source == WP  &&  dest == E  &&   row == 4  && getNumKnights board White == 2    = PlacePawn
     | source == WP  &&  dest == E  &&   row == 4  && getNumKnights board White <  2    = BoostPawn
@@ -346,6 +346,47 @@ getAllPlaysForPlayer board (Just (x:xs)) colour = [(populateMoveList board x col
 
 
 
+randomNum :: Int
+randomNum = (unsafePerformIO (randomRIO (0, 10))) :: Int       
+
+randomNumRange :: Int -> Int
+randomNumRange max = (unsafePerformIO (randomRIO (0, (max-1)))) :: Int       
+
+getRand :: [(Int, Int)] -> [(Int,Int)] -> [(Int,Int)]
+getRand sources dests = 
+    let rand = randomNumRange (length sources)
+     in [sources !! rand, dests !! rand]
+
+
+getBestofGreedyMoves :: [((Int,Int) , (Int,Int) , PlayOption)] -> Maybe [(Int,Int)]
+getBestofGreedyMoves  []                        = Just [(4,4), (2,3)]
+getBestofGreedyMoves [(x,y,z)]                  = Just [x,y]
+getBestofGreedyMoves  zs@(x:xs)
+    | randomNum > 5           = getBestofGreedyMoves (randomReorder (everySecond xs))
+    | otherwise               = getBestofGreedyMoves (randomReorder (everySecond zs))
+    where source = [ src | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs),
+                     x == minimum (map thrd zs) || x > EmptyCell, elem (src, dst, x) zs ]
+          dest   = [ dst | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs), 
+                     x == minimum (map thrd zs) || x > EmptyCell, elem (src, dst, x) zs ]
+          
+{-
+getWorstofGreedyMoves :: [((Int,Int) , (Int,Int) , PlayOption)] -> Maybe [(Int,Int)]
+getWorstofGreedyMoves  []                        = Just [(4,4), (2,3)]
+getWorstofGreedyMoves [(x,y,z)]                  = Just [x,y]
+getWorstofGreedyMoves  zs@(x:xs)
+    | randomNum < 5           = getWorstofGreedyMoves xs 
+    | otherwise               = getWorstofGreedyMoves zs
+    where source = [ src | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs),
+                     x == maximum (map thrd zs) || x < AttackKnight, elem (src, dst, x) zs ]
+          dest   = [ dst | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs), 
+                     x == maximum (map thrd zs) || x < AttackKnight, elem (src, dst, x) zs ]
+ -}        
+
+
+getMovesGreedy :: MoveListForPlayer -> [Maybe ((Int,Int) , (Int,Int) , PlayOption)]
+getMovesGreedy  []               = []
+getMovesGreedy (x:xs)            = [getMoveGreedy' x] ++ getMovesGreedy xs
+
 
 
 
@@ -363,44 +404,41 @@ getPiecesBestOption  zs                = getBestOptionFromList zs  (minimum (map
 
 
 getBestOptionFromList :: [((Int, Int), PlayOption)] -> PlayOption -> ((Int, Int), PlayOption)
-getBestOptionFromList (x:xs) option 
-    | snd x == option           = x
-    | otherwise                 = getBestOptionFromList xs option
+getBestOptionFromList (x:[]) option = x
+getBestOptionFromList (x:xs) option
+    | (snd x == option && randomNum == 10 && length xs /= 0)  = getBestOptionFromList xs (minimum (map snd xs))
+    |  snd x == option                                        = x
+    |  otherwise                                              = getBestOptionFromList xs option
 
 
-
-
-getMoveGreedy :: MoveListForPlayer -> [Maybe ((Int,Int) , (Int,Int) , PlayOption)]
-getMoveGreedy  []               = []
-getMoveGreedy (x:xs)            = [getMoveGreedy' x] ++ getMoveGreedy xs
-
-
-
-
-
-
-getBestofGreedyMoves :: [((Int,Int) , (Int,Int) , PlayOption)] -> Maybe [(Int,Int)]
-getBestofGreedyMoves  []                        = Nothing
-getBestofGreedyMoves [(x,y,z)]                  = Just [x,y]
-getBestofGreedyMoves  zs                  
-    = Just [source , dest] 
-      where source = [ src | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs), x == minimum (map thrd zs), elem (src, dst, x) zs ] !! 0
-            dest   = [ dst | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs), x == minimum (map thrd zs), elem (src, dst, x) zs ] !! 0
 
 
 
 
 filterNothingMoves :: [Maybe ((Int,Int) , (Int,Int) , PlayOption)] -> [((Int,Int) , (Int,Int) , PlayOption)]
-filterNothingMoves  [Nothing]      = []
 filterNothingMoves  []             = []
+filterNothingMoves  [Nothing]      = []
+filterNothingMoves  (Nothing:xs)   = filterNothingMoves xs 
 filterNothingMoves  [Just x]       = [x]
 filterNothingMoves  ((Just x):xs)  = [x] ++ filterNothingMoves xs
-filterNothingMoves  (Nothing:xs)   = filterNothingMoves xs 
 
 
 
 
 
+randomReorder :: [((Int,Int) , (Int,Int) , PlayOption)] -> [((Int,Int) , (Int,Int) , PlayOption)]
+randomReorder []      = []
+randomReorder [x]     = [x]
+randomReorder [x,y]   = [y,x]
+randomReorder (x:xs)  = 
+    let rand = randomNumRange (length xs)
+     in (take rand xs) ++ [x]
+
+{-
+  let playsForPlayer = getAllPlaysForPlayer (theBoard state) (Just (getPieceLocations (theBoard state) colour)) colour
+     in return (getBestofGreedyMoves (filterNothingMoves (getMovesGreedy playsForPlayer)))
+
+-}
 
 
 
@@ -430,9 +468,11 @@ second (_, (c,d), _) = (c,d)
 
 
 
-
-
-
+everySecond :: [((Int,Int) , (Int,Int) , PlayOption)] -> [((Int,Int) , (Int,Int) , PlayOption)]
+everySecond []     = []
+everySecond [x]    = [x]
+everySecond [x,y]  = [y] 
+everySecond (x:xs) = [head xs] ++ everySecond xs 
 
 
 
@@ -469,7 +509,7 @@ instance Show PlayType where
 
 
 instance Show PlayOption where
-         show AttackPawn     = "Capture Pawn"
+         show BlastPawn      = "Capture Pawn"
          show AttackKnight   = "Capture Knight"
          show BoostPawn      = "Upgrade"
          show PlacePawn      = "Place Pawn"
