@@ -2,6 +2,13 @@
 
 Notes at the end may be important for some of these TODO clauses
 
+TODO -8) I'm probably not gonna be up too early, It's 4:30 lol so I'm probably gonna sleep in and work on SENG. I got the random
+         moves working to a degree. I couldn't get it to stop going into loops so I passed an int into playGame like Wynn said and after a
+         certain # of turns it double passes and ties the game. In runStrategiesNormal you'll see this. I got it so that it goes into a
+         loop less often and after 70 turns it just double passes and ties. If you wanna mess with it go for it.
+         
+
+
 TODO -7) I uploaded a bunch of .txt files that our program output when I ran it on his scripts. We have to compare them with the 
          *.out files that I also uploaded because his checker said 2/3 were correct
 
