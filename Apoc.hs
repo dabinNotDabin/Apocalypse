@@ -88,13 +88,17 @@ playGame x True state blackStrat whiteStrat = do print state
 
 
     
-checkmode :: Chooser -> Chooser -> Bool -> IO()
+checkmode :: Chooser -> Chooser -> Maybe Bool -> IO()
+
 checkmode blackStrat whiteStrat isNotInteractive
-    | isNotInteractive == False    = interactiveMode
-    | otherwise                    = playGame 0 False initBoard blackStrat whiteStrat
+    | isNotInteractive == Nothing       = interactiveMode
+    | isNotInteractive == Just False    = printStrategies strategies
+    | otherwise                         = playGame 0 False initBoard blackStrat whiteStrat
+    where strategies = [(human, "human"),(greedy, "greedy"),(evasive, "evasive")]
+ 
 
  
- 
+
 
 interactiveMode :: IO()
 interactiveMode = do
@@ -105,17 +109,18 @@ interactiveMode = do
     a <- getLine
     putStrLn "\nChoose a strategy for White tho"
     b <- getLine
-    let blackStrat = getStrategy a
-        whiteStrat = getStrategy b
--- Have to verify strategy names again here (recursively i think) because getStrategy has a default of human, even if invalid ones were entered
-    playGame 0 False initBoard blackStrat whiteStrat
+    play a b
 
 
 
 
-
-
-
+play :: String -> String -> IO()
+play strBlack strWhite
+    | elem strBlack ["human", "greedy", "evasive"] && elem strWhite ["human", "greedy", "evasive"] = do playGame 0 False initBoard blackStrat whiteStrat
+    | otherwise = printStrategies strategies
+    where strategies = [(human, "human"),(greedy, "greedy"),(evasive, "evasive")]
+          blackStrat = getStrategy strBlack
+          whiteStrat = getStrategy strWhite
 
 -- | Moves the piece from the first coordinate to the second coordinate and sets the first coordinate == Cell
 moveAndFill :: Board -> (Int,Int) -> (Int,Int) -> Cell -> Board
@@ -176,7 +181,7 @@ getStrategy strategy
     | strategy == "greedy"    = greedy
     | strategy == "evasive"   = evasive
     | strategy == "human"     = human
-    | otherwise               = human
+    | otherwise               = jerry
 
 
 
@@ -252,7 +257,7 @@ checkForDoublePass state
 -- | Takes two moves and a 'GameState', assuming the first to be Black's move and the second to be White's move and executes one 'Normal' turn.
 runStrategiesNormal :: Int -> GameState -> Maybe[(Int,Int)] -> Maybe[(Int,Int)] -> GameState
 runStrategiesNormal x state blackMove whiteMove
-    | x == 20 = 
+    | x == 15 || x == 20 = 
         let blackPlayed = assessPlay Black Normal blackMove (theBoard state)
             whitePlayed = assessPlay White Normal Nothing (theBoard state)
          in      GameState (blackPlayed)
@@ -260,7 +265,7 @@ runStrategiesNormal x state blackMove whiteMove
                            (whitePlayed)
                            ((whitePen state) + (getPen whitePlayed)) 
                            (updateBoard (theBoard state) blackPlayed whitePlayed)
-    | x == 21 = 
+    | x == 16 || x == 21 = 
         let blackPlayed = assessPlay Black Normal Nothing (theBoard state)
             whitePlayed = assessPlay White Normal whiteMove (theBoard state)
          in      GameState (blackPlayed)
@@ -604,18 +609,18 @@ doUpdateClash board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
 line is empty, then return False.  If the commmand-line is not empty and doesn't
 contain -v, then print a synopsis and exit.
 -}
-interpretArgs :: [String] -> IO (Chooser, Chooser, Bool)
-interpretArgs args | (args == []) = do return (human, human, False)
-                   | ((head args) == "human") && (elem "human" (tail args))  && (length args == 2)     = do return (human, human, True)
-                   | ((head args) == "human") && (elem "greedy" (tail args))  && (length args == 2)    = do return (human, greedy, True)
-                   | ((head args) == "human") && (elem "evasive" (tail args))  && (length args == 2)   = do return (human, evasive, True)
-                   | ((head args) == "greedy") && (elem "human" (tail args))  && (length args == 2)    = do return (greedy, human, True)
-                   | ((head args) == "greedy") && (elem "greedy" (tail args))  && (length args == 2)   = do return (greedy, greedy, True)
-                   | ((head args) == "greedy") && (elem "evasive" (tail args))  && (length args == 2)  = do return (greedy, evasive, True)
-                   | ((head args) == "evasive") && (elem "human" (tail args))  && (length args == 2)   = do return (evasive, human, True)
-                   | ((head args) == "evasive") && (elem "greedy" (tail args))  && (length args == 2)  = do return (evasive, greedy, True)
-                   | ((head args) == "evasive") && (elem "evasive" (tail args))  && (length args == 2) = do return (evasive, evasive, True)
-                   |  otherwise                                                                        = do printSynopsis; return (human, human, False)
+interpretArgs :: [String] -> IO (Chooser, Chooser, Maybe Bool)
+interpretArgs args | (args == []) = do return (human, jerry, Nothing)
+                   | ((head args) == "human") && (elem "human" (tail args))  && (length args == 2)     = do return (human, human, Just True)
+                   | ((head args) == "human") && (elem "greedy" (tail args))  && (length args == 2)    = do return (human, greedy, Just True)
+                   | ((head args) == "human") && (elem "evasive" (tail args))  && (length args == 2)   = do return (human, evasive, Just True)
+                   | ((head args) == "greedy") && (elem "human" (tail args))  && (length args == 2)    = do return (greedy, human, Just True)
+                   | ((head args) == "greedy") && (elem "greedy" (tail args))  && (length args == 2)   = do return (greedy, greedy, Just True)
+                   | ((head args) == "greedy") && (elem "evasive" (tail args))  && (length args == 2)  = do return (greedy, evasive, Just True)
+                   | ((head args) == "evasive") && (elem "human" (tail args))  && (length args == 2)   = do return (evasive, human, Just True)
+                   | ((head args) == "evasive") && (elem "greedy" (tail args))  && (length args == 2)  = do return (evasive, greedy, Just True)
+                   | ((head args) == "evasive") && (elem "evasive" (tail args))  && (length args == 2) = do return (evasive, evasive, Just True)
+                   |  otherwise                                                                        = do return (human, human, Just False)
 
 
 
