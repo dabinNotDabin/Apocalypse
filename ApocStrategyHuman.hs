@@ -7,6 +7,9 @@ import Text.Read(readMaybe)
 import ApocTools
 --import ApocUtil
 
+jerry :: Chooser
+jerry _ _ _ = return Nothing
+
 human                   :: Chooser
 human board Normal player =
     do move <- readNPairs 2
