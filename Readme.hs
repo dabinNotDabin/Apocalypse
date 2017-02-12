@@ -10,7 +10,8 @@ TODO -8) I'm probably not gonna be up too early, It's 4:30 lol so I'm probably g
 
 
 TODO -7) I uploaded a bunch of .txt files that our program output when I ran it on his scripts. We have to compare them with the 
-         *.out files that I also uploaded because his checker said 2/3 were correct
+         *.out files that I also uploaded because his checker said 2/3 were correct.. I think it's in the passes one, it's upgrading
+         the knight incorrectly..
 
 TODO -6) Finish playGame (the one that's commented out) in Apoc.hs. I added to the old one quite a bit but left 
          it there so everything would still compile until we get the newer one finished.
