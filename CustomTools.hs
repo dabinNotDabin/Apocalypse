@@ -79,35 +79,6 @@ pawnUpgradeRequired :: Maybe PlayType -> Bool
 pawnUpgradeRequired Nothing = True
 pawnUpgradeRequired _       = False
 
-{-
--- | Takes the current 'GameState' and a 'Player' and returns either 'PawnPlacement' or 'Normal' to indicate
---   the expected user input for that 'Player', for that turn or returns 'Nothing' if it's an upgrade round.
-determinePlayType :: Board -> Player -> Maybe PlayType
-determinePlayType board Black  = determineBlackPlayType board
-determinePlayType board White  = determineWhitePlayType board
-
-
--- |Helper function for determinePlayType;
--- If any square in row 0 contains a 'BlackPawn', 'PlayType' is 'PawnPlacement', otherwise it's 'Normal', or returns 'Nothing' if a pawn is to be upgraded
-determineBlackPlayType :: Board -> Maybe PlayType
-determineBlackPlayType board
-    | (length [(a,0) | a <- [0..4], (getFromBoard board (a,0)) == BP] > 0) &&
-                                     getNumKnights board Black > 1              = Just PawnPlacement
-    | (length [(a,0) | a <- [0..4], (getFromBoard board (a,0)) == BP] > 0) &&
-                                     getNumKnights board Black < 2              = Nothing
-    | otherwise                                                                            = Just Normal
-
-
--- |Helper function for determinePlayType;
--- If any square in row 4 contains a 'WhitePawn', 'PlayType' is 'PawnPlacement', otherwise it's 'Normal', or returns 'Nothing' if a pawn is to be upgraded
-determineWhitePlayType :: Board -> Maybe PlayType
-determineWhitePlayType board
-    | (length [(a,4) | a <- [0..4], (getFromBoard board (a,4)) == WP] > 0) &&
-                                     getNumKnights board White > 1              = Just PawnPlacement
-    | (length [(a,0) | a <- [0..4], (getFromBoard board (a,4)) == WP] > 0) &&
-                                     getNumKnights board White < 2              = Nothing
-    | otherwise                                                                 = Just Normal
--}
 
 
 -- | Takes the current 'GameState' and a 'Player' and returns either 'PawnPlacement' or 'Normal' to indicate
@@ -377,6 +348,13 @@ getAllPlaysForPlayer board (Just (x:xs)) colour = [(populateMoveList board x col
 
 
 
+randomN :: Int -> IO(Int)
+randomN max = do 
+    g <- newStdGen
+    let number = (take max (randomRs (0, max) g))
+     in  return (number !! (randomNumRange (max :: Int)))
+
+
 
 randomNum :: Int
 randomNum = (unsafePerformIO (randomRIO (0, 10))) :: Int       
@@ -390,30 +368,30 @@ getRand sources dests =
      in [sources !! rand, dests !! rand]
 
 
-getBestofGreedyMoves :: [((Int,Int) , (Int,Int) , PlayOption)] -> Maybe [(Int,Int)]
-getBestofGreedyMoves  []                        = Just [(4,4), (2,3)]
-getBestofGreedyMoves [(x,y,z)]                  = Just [x,y]
+getBestofGreedyMoves :: [((Int,Int) , (Int,Int) , PlayOption)] -> IO (Maybe [(Int,Int)])
+getBestofGreedyMoves  []                        = return (Just [(4,4), (2,3)])
+getBestofGreedyMoves [(x,y,z)]                  = return (Just [x,y])
+getBestofGreedyMoves  zs@(x:xs)                 = do
+    number <- randomN ((length zs) - 1)
+    let source = [ src | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs),
+                     x == minimum (map thrd zs) || x > EmptyCell, elem (src, dst, x) zs ]
+        dest   = [ dst | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs), 
+                     x == minimum (map thrd zs) || x > EmptyCell, elem (src, dst, x) zs ]
+     in (if number > 3 then getBestofGreedyMoves zs
+         else return (Just [ first (zs !! number), second (zs !! number) ]))
+        
+
+{-
 getBestofGreedyMoves  zs@(x:xs)
-    | randomNum > 5           = getBestofGreedyMoves (randomReorder (everySecond xs))
+    | number > 5              = getBestofGreedyMoves (randomReorder (everySecond xs))
     | otherwise               = getBestofGreedyMoves (randomReorder (everySecond zs))
     where source = [ src | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs),
                      x == minimum (map thrd zs) || x > EmptyCell, elem (src, dst, x) zs ]
           dest   = [ dst | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs), 
                      x == minimum (map thrd zs) || x > EmptyCell, elem (src, dst, x) zs ]
-          
-{-
-getWorstofGreedyMoves :: [((Int,Int) , (Int,Int) , PlayOption)] -> Maybe [(Int,Int)]
-getWorstofGreedyMoves  []                        = Just [(4,4), (2,3)]
-getWorstofGreedyMoves [(x,y,z)]                  = Just [x,y]
-getWorstofGreedyMoves  zs@(x:xs)
-    | randomNum < 5           = getWorstofGreedyMoves xs 
-    | otherwise               = getWorstofGreedyMoves zs
-    where source = [ src | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs),
-                     x == maximum (map thrd zs) || x < AttackKnight, elem (src, dst, x) zs ]
-          dest   = [ dst | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs), 
-                     x == maximum (map thrd zs) || x < AttackKnight, elem (src, dst, x) zs ]
- -}        
-
+          number <- randomN (length zs)
+                      
+-}
 
 getMovesGreedy :: MoveListForPlayer -> [Maybe ((Int,Int) , (Int,Int) , PlayOption)]
 getMovesGreedy  []               = []
