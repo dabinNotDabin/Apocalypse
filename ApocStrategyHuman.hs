@@ -18,7 +18,7 @@ human board Normal player =
                            ++ " in the form 'srcX srcY destX destY'\n"
                            ++ "[0 >= n >= 4, or just enter return for a 'pass'] "
                            ++ (if player==White then "W" else "B")
-                           ++ "4:\n")
+                           ++ "2:\n")
                           (\x -> x>=0 && x<=4)
        return move
 human board PawnPlacement player =
@@ -28,7 +28,7 @@ human board PawnPlacement player =
                            ++ " in the form 'destX destY':\n"
                            ++ "[0 >= n >= 4] "
                            ++ (if player==White then "W" else "B")
-                           ++ "2:\n")
+                           ++ "1:\n")
                           (\x -> x>=0 && x<=4)
        return move
 
