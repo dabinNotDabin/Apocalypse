@@ -74,7 +74,7 @@ replace2 xs (x,y) elem = replace xs y (replace (xs !! y) x elem)
 
 
 
-
+--| helper function for if a pawn upgrade is required. 
 pawnUpgradeRequired :: Maybe PlayType -> Bool
 pawnUpgradeRequired Nothing = True
 pawnUpgradeRequired _       = False
@@ -162,17 +162,18 @@ checkPenalties state White = ((whitePen state) >= 2)
  
 
 
-
+-- | Upgrade pawns takes a gamestate and two booleans (for white and black) and then upgrades pawns accordingly
 upgradePawns :: GameState -> Bool -> Bool -> GameState --board, white, black
 upgradePawns oldGS white black 
         | (white == True  && black == True)  = updateBoth  oldGS
         | (white == True  && black == False) = updateWhite oldGS
         | (white == False && black == True)  = updateBlack oldGS
         | otherwise                          = oldGS
-
+-- | upgrades a white pawn and a black pawn to a white knight and a black knight
 updateBoth :: GameState -> GameState
 updateBoth g = updateWhite (updateBlack g)
 
+-- |upgrades a black pawn to a black knight
 updateBlack :: GameState -> GameState
 updateBlack g = 
         let board = (theBoard g)
@@ -183,6 +184,7 @@ updateBlack g =
                       ((whitePen  g))
                       ((replace2 board (head coord) BK))
 
+-- |upgrades a white pawn to a white knight
 updateWhite :: GameState -> GameState
 updateWhite g = 
         let board = (theBoard g)
@@ -347,7 +349,7 @@ getAllPlaysForPlayer _     (Just  [])  colour = []
 getAllPlaysForPlayer board (Just (x:xs)) colour = [(populateMoveList board x colour)] ++ (getAllPlaysForPlayer board (Just xs) colour)
 
 
-
+-- | generates a random number between 0 and some input
 randomN :: Int -> IO(Int)
 randomN max = do 
     g <- newStdGen
@@ -355,19 +357,22 @@ randomN max = do
      in  return (number !! (randomNumRange (max :: Int)))
 
 
-
+-- | generates a random number between 0 and 10
 randomNum :: Int
 randomNum = (unsafePerformIO (randomRIO (0, 10))) :: Int       
 
+
+-- | generates a random number between 0 and some input minus 1
 randomNumRange :: Int -> Int
 randomNumRange max = (unsafePerformIO (randomRIO (0, (max-1)))) :: Int       
 
+-- | takes two lists of tuples and returns a 2 element list of tuples. Used to generate random moves
 getRand :: [(Int, Int)] -> [(Int,Int)] -> [(Int,Int)]
 getRand sources dests = 
     let rand = randomNumRange (length sources)
      in [sources !! rand, dests !! rand]
 
-
+-- | Used in both AI strategies. Looks through every possible move and returns a list of moves where a players piece can take an opponent's piece
 getBestofGreedyMoves :: [((Int,Int) , (Int,Int) , PlayOption)] -> IO (Maybe [(Int,Int)])
 getBestofGreedyMoves  []                        = return (Just [(4,4), (2,3)])
 getBestofGreedyMoves [(x,y,z)]                  = return (Just [x,y])
@@ -381,38 +386,27 @@ getBestofGreedyMoves  zs@(x:xs)                 = do
          else return (Just [ first (zs !! number), second (zs !! number) ]))
         
 
-{-
-getBestofGreedyMoves  zs@(x:xs)
-    | number > 5              = getBestofGreedyMoves (randomReorder (everySecond xs))
-    | otherwise               = getBestofGreedyMoves (randomReorder (everySecond zs))
-    where source = [ src | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs),
-                     x == minimum (map thrd zs) || x > EmptyCell, elem (src, dst, x) zs ]
-          dest   = [ dst | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs), 
-                     x == minimum (map thrd zs) || x > EmptyCell, elem (src, dst, x) zs ]
-          number <- randomN (length zs)
-                      
--}
-
+-- | Populates a list of moves where a players piece can take an opponent's piece
 getMovesGreedy :: MoveListForPlayer -> [Maybe ((Int,Int) , (Int,Int) , PlayOption)]
 getMovesGreedy  []               = []
 getMovesGreedy (x:xs)            = [getMoveGreedy' x] ++ getMovesGreedy xs
 
 
 
-
+-- | generates one move such that a player's piece can take an opponent's piece
 getMoveGreedy' :: MovesForPiece -> Maybe ((Int,Int) , (Int,Int) , PlayOption)
 getMoveGreedy' (src, [])           = Nothing              
 getMoveGreedy' (src, zs)           = let bestOption = getPiecesBestOption zs
                                       in Just (src,  (fst bestOption) , (snd bestOption))  
   
 
-
+-- | filters the best move from a list of moves for a given piece
 getPiecesBestOption :: [((Int, Int), PlayOption)] -> ((Int, Int), PlayOption)
 getPiecesBestOption (z:[])             = z 
 getPiecesBestOption  zs                = getBestOptionFromList zs  (minimum (map snd zs))
 
 
-
+-- | filters the best move from a list of moves for all pieces
 getBestOptionFromList :: [((Int, Int), PlayOption)] -> PlayOption -> ((Int, Int), PlayOption)
 getBestOptionFromList (x:[]) option = x
 getBestOptionFromList (x:xs) option
@@ -424,7 +418,7 @@ getBestOptionFromList (x:xs) option
 
 
 
-
+-- | take a list of moves and filter all the Nothings from it
 filterNothingMoves :: [Maybe ((Int,Int) , (Int,Int) , PlayOption)] -> [((Int,Int) , (Int,Int) , PlayOption)]
 filterNothingMoves  []             = []
 filterNothingMoves  [Nothing]      = []
@@ -435,7 +429,7 @@ filterNothingMoves  ((Just x):xs)  = [x] ++ filterNothingMoves xs
 
 
 
-
+--| randomly re orders a list
 randomReorder :: [((Int,Int) , (Int,Int) , PlayOption)] -> [((Int,Int) , (Int,Int) , PlayOption)]
 randomReorder []      = []
 randomReorder [x]     = [x]
@@ -444,11 +438,7 @@ randomReorder (x:xs)  =
     let rand = randomNumRange (length xs)
      in (take rand xs) ++ [x]
 
-{-
-  let playsForPlayer = getAllPlaysForPlayer (theBoard state) (Just (getPieceLocations (theBoard state) colour)) colour
-     in return (getBestofGreedyMoves (filterNothingMoves (getMovesGreedy playsForPlayer)))
 
--}
 
 
 
@@ -462,22 +452,22 @@ randomReorder (x:xs)  =
 -- ========================================================================================
 
 
-
+-- | takes the third item from a triple
 thrd :: ((Int,Int) , (Int,Int) , PlayOption) -> PlayOption
 thrd (_, _, x) = x
 
-
+-- | takes the first item from a triple
 first :: ((Int,Int) , (Int,Int) , PlayOption) -> (Int, Int)
 first ((a,b), _, _) = (a,b)
 
 
-
+-- | takes the second item from a triple
 second :: ((Int,Int) , (Int,Int) , PlayOption) -> (Int, Int)
 second (_, (c,d), _) = (c,d)
 
 
 
-
+--| takes every second item from a list of triples
 everySecond :: [((Int,Int) , (Int,Int) , PlayOption)] -> [((Int,Int) , (Int,Int) , PlayOption)]
 everySecond []     = []
 everySecond [x]    = [x]
@@ -491,7 +481,7 @@ everySecond (x:xs) = [head xs] ++ everySecond xs
 -- ========================================================================================
 
 
-
+-- | helper instance used to determine the type of action occured when a turn is evaluated
 instance Show MoveType where
          show BlackDodge = "Black Dodge"
          show WhiteDodge = "White Dodge"
@@ -501,7 +491,7 @@ instance Show MoveType where
 
 
 
-
+-- | helper instance used to determine the outcome of two pieces clashing
 instance Show Outcome where
          show Win  = "Win"
          show Loss = "Loss"
@@ -509,7 +499,7 @@ instance Show Outcome where
 
 
 
-
+-- | helper instance used to determine normal play or if a player needs to place a pawn
 instance Show PlayType where
          show Normal        = "Normal"
          show PawnPlacement = "PawnPlacement"
@@ -517,7 +507,7 @@ instance Show PlayType where
  
 
 
-
+-- | helper instance used to determine the type of move that was made that turn
 instance Show PlayOption where
          show BlastPawn      = "Capture Pawn"
          show AttackKnight   = "Capture Knight"
@@ -527,7 +517,7 @@ instance Show PlayOption where
 
 
 
-
+-- | The following instances were used to test the game, but have been left in the code for evaluation purposes
 testBoard       :: GameState
 testBoard       = GameState Init 0 Init 0
                   [ [WK, WP, E, WP, WK],
@@ -538,7 +528,7 @@ testBoard       = GameState Init 0 Init 0
 
 
 
-
+-- | Used to test the game
 testBoard2       :: GameState
 testBoard2       = GameState Init 0 Init 0
                   [ [WK, WP, E, WP, WK],
@@ -550,7 +540,7 @@ testBoard2       = GameState Init 0 Init 0
 
 
 
-
+-- | Used to test the game
 testBoard3       :: GameState
 testBoard3       = GameState Init 0 Init 0
                   [ [BK, WP, E, WP, WK],
@@ -561,7 +551,7 @@ testBoard3       = GameState Init 0 Init 0
 
 
 
-
+-- | Used to test the game
 testBoard4       :: GameState
 testBoard4       = GameState Init 0 Init 0
                   [ [WK, WP, E, WP, WK],
@@ -573,7 +563,7 @@ testBoard4       = GameState Init 0 Init 0
 
 
 
-
+-- | Used to test the game
 testBoard5       :: GameState
 testBoard5       = GameState Init 0 Init 0
                   [ [WK, E, E, E, E],
@@ -585,7 +575,7 @@ testBoard5       = GameState Init 0 Init 0
 
 
 
-
+-- | Used to test the game
 testBoard6       :: GameState
 testBoard6       = GameState Init 0 Init 0
                   [ [WK, E, E, E, E],
@@ -599,7 +589,7 @@ testBoard6       = GameState Init 0 Init 0
 
 
 
-
+-- | Used to test the game
 testBoard7       :: GameState
 testBoard7       = GameState Init 0 Init 0
                   [ [WK, WP, BP, WP, WK],

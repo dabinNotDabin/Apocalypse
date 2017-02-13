@@ -27,22 +27,9 @@ import System.Random
 import System.IO.Unsafe
 
 
-{-
-
-evasive :: Chooser
-evasive state Normal colour = do
-    move <- 
-    let enemy            = getOppositeColour colour
-        playsForEnemy    = getAllPlaysForPlayer (theBoard state) (Just (getPieceLocations (theBoard state) enemy)) enemy
-        bestEnemy        = getGreedyDest (theBoard state) colour (getBestofGreedyMoves (filterNothingMoves (getMovesGreedy playsForEnemy)))              --grab enemies best move for comparison
-        movePieceMoves   = populateMoveList (theBoard state) bestEnemy colour
-        playsForPlayer   = getAllPlaysForPlayer (theBoard state) (Just (getPieceLocations (theBoard state) colour)) colour
-     in return (getMoveEvasive movePieceMoves (theBoard state) colour)
-
--}
 
 
-
+-- | The evasive AI populates a list of moves that the opponent can make, and if an opponent can take the AI's piece, it will move that piece out of the way.
 evasive :: Chooser
 evasive state Normal colour = 
     let    enemy            = getOppositeColour colour
@@ -64,6 +51,7 @@ getOppositeColour :: Player -> Player
 getOppositeColour colour | colour == Black = White
                          | colour == White = Black
 
+--| generates a move based on the list of opponent's moves. If the opponent can not immediately take our piece, make a move at random
 getMoveEvasive :: MovesForPiece -> Board -> Player -> IO (Maybe [(Int,Int)])
 getMoveEvasive (x,[]) board colour = 
     let playsForPlayer = getAllPlaysForPlayer board (Just (getPieceLocations board colour)) colour
@@ -79,9 +67,8 @@ getMoveEvasive (x,xs) board colour
 
 
 
---Might need to catch a Nothing case here.. for example, the Player has 1 pawn and it's blocked directly in front by an opposite pawn and no captures are available
+--| return destination coordinates for the opponent's best move.
 getGreedyDest :: Board -> Player -> Maybe [(Int,Int)] -> (Int, Int) -- returns destination coords for enemy's best move
---getGreedyDest board colour Nothing = (0,0)
 getGreedyDest board colour Nothing = 
     let pieceLocations = (getPieceLocations board colour)
      in pieceLocations !! (unsafePerformIO (randomRIO (0, ((length pieceLocations) - 1))))
@@ -92,17 +79,3 @@ getGreedyDest board colour (Just [x,y])
 
 getGreedyDest board colour (Just [x,y]) = y
 
-
-{-
-getBestofGreedyMoves :: [((Int,Int) , (Int,Int) , PlayOption)] -> Maybe [(Int,Int)]
-getBestofGreedyMoves  []                        = Just [(4,4), (2,3)]
-getBestofGreedyMoves [(x,y,z)]                  = Just [x,y]
-getBestofGreedyMoves  zs@(x:xs)
-    | randomNum > 5           = getBestofGreedyMoves xs 
-    | otherwise               = (Just (getRand source dest))
-    where source = [ src | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs),
-                     x == minimum (map thrd zs) || x > EmptyCell, elem (src, dst, x) zs ]
-          dest   = [ dst | src <- (map first zs), dst <- (map second zs), x <- (map thrd zs), 
-                     x == minimum (map thrd zs) || x > EmptyCell, elem (src, dst, x) zs ]
-          
--}

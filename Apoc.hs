@@ -1,6 +1,6 @@
 {- |
 Module      : Main
-Description : Template to get you started on the CPSC 449 Winter 2016 Apocalypse assignment.
+Description : The main game file. Used to play the Apocalypse chess simuator.
 Copyright   : Copyright 2016, Rob Kremer (rkremer@ucalgary.ca), University of Calgary.
 License     : Permission to use, copy, modify, distribute and sell this software
               and its documentation for any purpose is hereby granted without fee, provided
@@ -63,30 +63,8 @@ main' args = do
     checkmode a b isNotInteractive
 
 
-
-
-{-
-playGame :: Int -> Bool -> GameState -> Chooser -> Chooser -> IO()
-playGame x False state blackStrat whiteStrat
-    | (pawnUpgradeRequired (determinePlayType (theBoard state) Black) == True)  ||  (pawnUpgradeRequired (determinePlayType (theBoard state) White) == True)    = do
-        let newState = upgradePawns state (pawnUpgradeRequired (determinePlayType (theBoard state) White)) (pawnUpgradeRequired (determinePlayType (theBoard state) Black))
-         in do a <- checkWin newState
-               print state
-               checkWin newState
-               playGame (x+1) a newState blackStrat whiteStrat
-    | otherwise  = do
-        let blackPlayType = determinePlayType (theBoard state) Black
-            whitePlayType = determinePlayType (theBoard state) White
-         in do print state
-               newState <- roundExecute x state blackStrat blackPlayType whiteStrat whitePlayType
-               a <- checkWin newState
-               playGame (x+1) a newState blackStrat whiteStrat
-
-playGame x True state blackStrat whiteStrat = do print state
--}
-
-
-
+-- | The main function we use to play the game. The function takes the current turn count, a boolean which checks if the game is still playing, a gamestate, and the strategy for black/white
+-- play types function as interrupts to normal play. Prior to every round, the game will check if a pawn requires and upgrade. If it cannot be upgraded, the game will prompt a player to move their pawn to another place on the board.
 playGame :: Int -> Bool -> GameState -> Chooser -> Chooser -> IO()
 playGame x False state blackStrat whiteStrat
     | (pawnUpgradeRequired (determinePlayType state Black) == True)  ||  (pawnUpgradeRequired (determinePlayType state White) == True)    = do
@@ -108,9 +86,8 @@ playGame x True state blackStrat whiteStrat = do print state
 
 
 
-    
+-- |Checks the mode that the user has previously chosen and triggers the appropriate mode based on the triple returned from "interpretArgs"
 checkmode :: Chooser -> Chooser -> Maybe Bool -> IO()
-
 checkmode blackStrat whiteStrat isNotInteractive
     | isNotInteractive == Nothing       = interactiveMode
     | isNotInteractive == Just False    = printStrategies strategies
@@ -120,21 +97,21 @@ checkmode blackStrat whiteStrat isNotInteractive
 
  
 
-
+-- | The interactive functionality of the program. Prompts the user to input a strategy for white and black and then calls the play function.
 interactiveMode :: IO()
 interactiveMode = do
     putStrLn "  greedy"
     putStrLn "  evasive"
     putStrLn "  human"
-    putStrLn "\nChoose a strategy for Black yo"
+    putStrLn "\nChoose a strategy for Black"
     a <- getLine
-    putStrLn "\nChoose a strategy for White tho"
+    putStrLn "\nChoose a strategy for White"
     b <- getLine
     play a b
 
 
 
-
+-- | helper function for interactive mode. Checks to see if the user chose the strategies correctly and plays the game accordingly. Otherwise the program prints the Strategies and exits
 play :: String -> String -> IO()
 play strBlack strWhite
     | elem strBlack ["human", "greedy", "evasive"] && elem strWhite ["human", "greedy", "evasive"] = do playGame 0 False initBoard blackStrat whiteStrat
@@ -219,7 +196,7 @@ printStrategies (x:xs) = do
 
 
  
- 
+ -- | main function for checking if a player has won the game. Is called at the end of every turn.
 checkWin :: GameState -> IO(Bool)
 checkWin gamestate = do
     a <- checkWinByPawn Black gamestate
@@ -228,7 +205,7 @@ checkWin gamestate = do
     d <- checkLossThroughPenalty White gamestate
     e <- checkForDoublePass gamestate
     return (a || b || c || d || e)
-
+-- | checks to see if a player has won by taking all of their opponent's pawns. 
 checkWinByPawn :: Player -> GameState -> IO(Bool)
 checkWinByPawn player gamestate =
     if player == Black
@@ -237,23 +214,26 @@ checkWinByPawn player gamestate =
     else
         let aBoard = theBoard gamestate
         in (checkBlackPawns aBoard)
-
+-- | Checks to see if black has no pawns left on the board. If this is true, prints appropriate message and returns true, signalling the playgame function that the game has ended.
 checkBlackPawns :: [[Cell]] -> IO(Bool)
 checkBlackPawns [] = do putStrLn $ "White Wins by taking all Pawns!"; return True
 checkBlackPawns (x:xs)   | elem BP x == True = do return False
                          | elem BP x == False = checkBlackPawns xs
 
+-- | Checks to see if white has no pawns left on the board. If this is true, prints appropriate message and returns true, signalling the playgame function that the game has ended.
 checkWhitePawns :: [[Cell]] -> IO(Bool)
 checkWhitePawns [] = do putStrLn $ "Black Wins by taking all Pawns!"; return True
 checkWhitePawns (x:xs)   | elem WP x == True = do return False
                          | elem WP x == False = checkWhitePawns xs
 
+--| Checks to see if a player has lost by making two illegal moves. If this is the case, then prints the appropriate message and returns true.
 checkLossThroughPenalty :: Player -> GameState -> IO(Bool)
 checkLossThroughPenalty player gamestate 
     | ((player == Black) && (checkPenalties gamestate player )) = do putStrLn $ "White Wins by penalty!"; return True
     | ((player == White) && (checkPenalties gamestate player )) = do putStrLn $ "Black Wins by penalty!"; return True
     | True = do return False
 
+-- | Checks to see if both players have passed. In this case, the game is ended by tie.
 checkForDoublePass :: GameState -> IO(Bool)
 checkForDoublePass state
     | (blackPlay state == Passed) && (whitePlay state == Passed) =  do putStrLn $ "Tie -- Double Pass"; return True
@@ -376,7 +356,8 @@ runStrategiesPawnPlacement state blackMove whiteMove _ =
 
 
 
-
+-- | Executes a round according to if just one player needs to place a pawn, if neither player needs to place a pawn, or if both players need to place a pawn.
+-- returns a gamestate after running the moves. Depending on the game mode, one or both players may be required to make a move.
 roundExecute :: Int -> GameState -> Chooser -> Maybe PlayType -> Chooser -> Maybe PlayType -> IO GameState
 roundExecute x state blackStrat (Just Normal)          whiteStrat (Just PawnPlacement)   = do 
     move2 <- whiteStrat state PawnPlacement White
@@ -615,7 +596,7 @@ updateBoard' board NoEvent       (Just [(w0,x0),(w1,x1)]) Nothing               
 
 
 
-
+-- | Helper function for if two pieces on the board clash. Resolves clashes based on the outcome decided in getOutcome.
 doUpdateClash :: Board -> Maybe [(Int, Int)] -> Maybe [(Int, Int)] -> Board
 doUpdateClash board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
     | outcome  ==  Win     = replace2 (moveAndFill board (w0,x0) (w1,x1) E) (y0,z0) E
@@ -636,9 +617,8 @@ doUpdateClash board (Just [(w0,x0),(w1,x1)]) (Just [(y0,z0),(y1,z1)])
 -- ========================================================================================
 
 
-{- | Return True only if we find "-v" among the command-line arguments.  If the command
-line is empty, then return False.  If the commmand-line is not empty and doesn't
-contain -v, then print a synopsis and exit.
+{- | Interprets the program arguments. If there are no arguments, the program will return two "strategies" and nothing. This will trigger the interactive mode.
+     Otherwise the program will check the arguments and return the appropriate strategies.
 -}
 interpretArgs :: [String] -> IO (Chooser, Chooser, Maybe Bool)
 interpretArgs args | (args == []) = do return (human, jerry, Nothing)
@@ -655,7 +635,7 @@ interpretArgs args | (args == []) = do return (human, jerry, Nothing)
 
 
 
-{- | Print a synopsis of the program.
+{- | Print a synopsis for starting the program
 -}
 printSynopsis :: IO ()
 printSynopsis = do

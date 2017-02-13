@@ -9,7 +9,7 @@ import ApocTools
 
 jerry :: Chooser
 jerry _ _ _ = return Nothing
-
+--| helper functions for human players. Specifically, prompts the player to make a move based on the playtype.
 human                   :: Chooser
 human board Normal player =
     do move <- readNPairs 2
@@ -31,7 +31,7 @@ human board PawnPlacement player =
                            ++ "1:\n")
                           (\x -> x>=0 && x<=4)
        return move
-
+--| converts a list of moves into a list of tuples where the tuple is equal to (src, dest)
 list2pairs            :: [a] -> [(a,a)]
 list2pairs []         = []
 list2pairs (x0:x1:xs) = (x0,x1):list2pairs xs

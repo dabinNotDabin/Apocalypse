@@ -30,7 +30,7 @@ import System.IO.Unsafe
 
 
 
-
+--| AI for the greedy strategy, basically it populates a list of all moves and makes one, taking priority on moves that allow the AI to take an opponent's piece
 greedy    :: Chooser
 greedy state Normal colour = 
     let playsForPlayer = getAllPlaysForPlayer (theBoard state) (Just (getPieceLocations (theBoard state) colour)) colour
